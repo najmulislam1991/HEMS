@@ -295,6 +295,7 @@
             reportData: null,
             editingJamatId: null,
             kitabNamesCache: [],
+            unsubscribers: [],
         };
         
         // --- SolaimanLipi Font Data (for jsPDF) ---
@@ -827,13 +828,60 @@
 
         // --- Auth & Initialization Flow ---
         function initializeDataListeners() {
-            if (!state.userId) return;
-            onSnapshot(collection(db, `${basePath}/academicYears`), s => { state.academicYears = s.docs.map(d=>({id: d.id, ...d.data()})); populateSelect(attYearSelect, state.academicYears, 'id', i=>`${i.hijri} (${i.gregorian})`); populateSelect(repYear, state.academicYears, 'id', i=>`${i.hijri} (${i.gregorian})`); if(state.academicYears.length > 0 && !state.selectedFilters.year) { state.selectedFilters.year = state.academicYears[0].id; attYearSelect.value = state.selectedFilters.year; repYear.value = state.selectedFilters.year; } if(state.currentPage === 'settings') renderSettingsYears(); });
-            onSnapshot(collection(db, `${basePath}/jamats`), s => { state.jamats={}; const list=[]; s.docs.forEach(d=>{state.jamats[d.id]=d.data(); list.push({id:d.id,...d.data()})}); populateSelect(attJamatSelect,list,'id','name'); populateSelect(repJamat,list,'id','name'); populateSelect(document.getElementById('student-jamat'),list,'id','name'); if(list.length>0&&!state.selectedFilters.jamat){ state.selectedFilters.jamat=list[0].id; attJamatSelect.value=list[0].id; repJamat.value=list[0].id; fetchAttendance(); } if(state.currentPage === 'settings') renderSettingsJamats(); });
-            onSnapshot(collection(db, `${basePath}/students`), s => { state.students = s.docs.map(d=>({id: d.id, ...d.data()})); if(state.currentPage==='attendance') renderAttendanceTable(); if(state.currentPage==='settings') renderSettingsStudents(); });
+            if (!state.userId || state.unsubscribers.length > 0) return; // Prevent multiple listeners
             
-            loader.style.display = 'none';
-            navigate('home');
+            const collectionsToWatch = {
+                academicYears: 'academicYears',
+                jamats: 'jamats',
+                students: 'students'
+            };
+
+            for(const [stateKey, collectionName] of Object.entries(collectionsToWatch)) {
+                const q = query(collection(db, `${basePath}/${collectionName}`));
+                const unsubscribe = onSnapshot(q, (snapshot) => {
+                    if (collectionName === 'jamats') {
+                        state.jamats = {};
+                        snapshot.docs.forEach(d => state.jamats[d.id] = d.data());
+                    } else {
+                        state[stateKey] = snapshot.docs.map(d => ({id: d.id, ...d.data()}));
+                    }
+                    
+                    // Trigger re-render of relevant parts
+                    if (state.currentPage === 'settings') {
+                        if (collectionName === 'academicYears') renderSettingsYears();
+                        if (collectionName === 'jamats') renderSettingsJamats();
+                        if (collectionName === 'students') renderSettingsStudents();
+                    }
+                    if (state.currentPage === 'attendance' && collectionName !== 'academicYears') {
+                        renderAttendanceTable();
+                    }
+                });
+                state.unsubscribers.push(unsubscribe);
+            }
+            
+            // Initial population of dropdowns after first data fetch
+            setTimeout(() => {
+                populateSelect(attYearSelect, state.academicYears, 'id', i => `${i.hijri} (${i.gregorian})`);
+                populateSelect(repYear, state.academicYears, 'id', i => `${i.hijri} (${i.gregorian})`);
+                if(state.academicYears.length > 0 && !state.selectedFilters.year) {
+                    state.selectedFilters.year = state.academicYears[0].id;
+                    attYearSelect.value = state.selectedFilters.year;
+                    repYear.value = state.selectedFilters.year;
+                }
+                const jamatList = Object.entries(state.jamats).map(([id, data])=>({id, ...data}));
+                populateSelect(attJamatSelect, jamatList, 'id', 'name');
+                populateSelect(repJamat, jamatList, 'id', 'name');
+                populateSelect(document.getElementById('student-jamat'), jamatList, 'id', 'name');
+                if(jamatList.length > 0 && !state.selectedFilters.jamat) {
+                    state.selectedFilters.jamat = jamatList[0].id;
+                    attJamatSelect.value = jamatList[0].id;
+                    repJamat.value = jamatList[0].id;
+                    fetchAttendance();
+                }
+
+                loader.style.display = 'none';
+                navigate('home');
+            }, 500); // Small delay to ensure initial data is likely present
         }
 
         async function main() {
@@ -877,3 +925,4 @@
     </script>
 </body>
 </html>
+" and the user's query is "অন্যান্য আইকনের মতই সেটিং আইকন দাও,স্টাইলের কথা বল
