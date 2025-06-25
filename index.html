@@ -19,16 +19,27 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
+        /* Default font set to Hind Siliguri */
         body {
             font-family: 'Hind Siliguri', sans-serif;
             background-color: #111827; /* bg-gray-900 */
             color: #d1d5db; /* text-gray-300 */
+            transition: font-family 0.3s ease-in-out;
+        }
+        /* Class for SolaimanLipi */
+        .font-solaiman {
+            font-family: 'SolaimanLipi', 'Hind Siliguri', sans-serif;
+        }
+        /* Class for Hind Siliguri (explicitly) */
+        .font-hind-siliguri {
+            font-family: 'Hind Siliguri', sans-serif;
         }
         .page {
             display: none;
         }
         .page.active {
             display: block;
+            animation: fadeIn 0.3s ease-in-out;
         }
         .lucide {
             width: 1rem;
@@ -43,8 +54,8 @@
         }
         /* Custom animation */
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
         .animate-fade-in {
             animation: fadeIn 0.5s ease-out forwards;
@@ -84,7 +95,7 @@
                     <h1 class="text-4xl md:text-5xl font-bold text-white mb-2">হাসানিয়া পরীক্ষা পরিচালনা ব্যবস্থা</h1>
                     <p class="text-cyan-400 text-lg md:text-xl">(Hasania Exam Management System - HEMS)</p>
                 </header>
-                <div class="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div id="home-cards" class="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <!-- Cards will be injected by JS -->
                 </div>
             </div>
@@ -173,16 +184,8 @@
             
             <div id="settings-content">
                 <!-- Settings Main Menu -->
-                <div id="settings-main" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
-
-                <!-- Jamat & Kitab Management -->
-                <div id="settings-jamats" class="hidden bg-gray-800 p-6 rounded-lg"></div>
-                
-                <!-- Student Management -->
-                <div id="settings-students" class="hidden bg-gray-800 p-6 rounded-lg"></div>
-
-                <!-- Academic Year Management -->
-                <div id="settings-years" class="hidden bg-gray-800 p-6 rounded-lg"></div>
+                <div id="settings-main" class="space-y-6"></div>
+                <!-- Subpages will be rendered here -->
             </div>
         </div>
         
@@ -368,7 +371,7 @@
             { id: 'attendance', label: 'পরীক্ষার্থী হাজিরা', icon: `<svg class="lucide lucide-user" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>` },
             { id: 'reports', label: 'রিপোর্ট ডাউনলোড', icon: `<svg class="lucide lucide-download" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>` },
             { id: 'introduction', label: 'জামিয়ার পরিচয়', icon: `<svg class="lucide lucide-book" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>` },
-            { id: 'settings', label: 'সেটিংস', icon: `<svg class="lucide lucide-cog" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16z"/><path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/><path d="M12 2v2"/><path d="M12 22v-2"/><path d="m19.07 4.93-1.41 1.41"/><path d="m6.34 17.66-1.41 1.41"/><path d="M22 12h-2"/><path d="M4 12H2"/><path d="m19.07 19.07-1.41-1.41"/><path d="m6.34 6.34-1.41-1.41"/></svg>` },
+            { id: 'settings', label: 'সেটিংস', icon: `<svg class="lucide lucide-settings-2" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7h-9"/><path d="M14 17H4"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>` },
             { id: 'about', label: 'HEMS সম্পর্কে', icon: `<svg class="lucide lucide-info" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>` },
         ];
         const desktopNav = document.getElementById('desktop-nav');
@@ -419,7 +422,7 @@
         }
         
         function renderHome() {
-            const homeContainer = document.querySelector('#page-home .grid');
+            const homeContainer = document.getElementById('home-cards');
             const cardData = [
                 { page: 'attendance', icon: navItems[1].icon, title: 'হাজিরা নিন', desc: 'শিক্ষাবর্ষ, জামাত ও পরীক্ষা নির্বাচন করে সহজেই শিক্ষার্থীদের হাজিরা নিন।'},
                 { page: 'reports', icon: navItems[2].icon, title: 'রিপোর্ট ডাউনলোড', desc: 'শিক্ষার্থীদের উপস্থিতির বিস্তারিত রিপোর্ট পিডিএফ বা এক্সেল ফরম্যাটে ডাউনলোড করুন।'},
@@ -562,19 +565,26 @@
         // --- Settings Page ---
         const settingsTitle = document.getElementById('settings-title');
         const settingsMain = document.getElementById('settings-main');
+        const settingsContent = document.getElementById('settings-content');
         const settingsBackButton = document.getElementById('settings-back-btn');
-        const settingsSubpages = {
-            jamats: document.getElementById('settings-jamats'),
-            students: document.getElementById('settings-students'),
-            years: document.getElementById('settings-years')
-        };
         const studentModalEl = document.getElementById('student-modal');
 
         function navigateSettings(subpageId) {
+            settingsMain.innerHTML = '';
             settingsMain.style.display = 'none';
-            Object.values(settingsSubpages).forEach(p => p.classList.add('hidden'));
-            settingsSubpages[subpageId].classList.remove('hidden');
+
+            let subpageContainer = document.getElementById(`settings-${subpageId}`);
+            if (!subpageContainer) {
+                subpageContainer = document.createElement('div');
+                subpageContainer.id = `settings-${subpageId}`;
+                subpageContainer.className = 'bg-gray-800 p-6 rounded-lg';
+                settingsContent.appendChild(subpageContainer);
+            }
+
+            document.querySelectorAll('#settings-content > div:not(#settings-main)').forEach(p => p.classList.add('hidden'));
+            subpageContainer.classList.remove('hidden');
             settingsBackButton.classList.remove('hidden');
+
             const subpageTitles = {
                 jamats: "জামাত ও কিতাব ব্যবস্থাপনা",
                 students: "শিক্ষার্থী ব্যবস্থাপনা",
@@ -587,34 +597,43 @@
             if(subpageId === 'years') renderSettingsYears();
         }
 
-        settingsBackButton.addEventListener('click', () => {
-            Object.values(settingsSubpages).forEach(p => p.classList.add('hidden'));
-            settingsMain.style.display = 'grid';
-            settingsBackButton.classList.add('hidden');
-            settingsTitle.textContent = 'সেটিংস';
-        });
+        settingsBackButton.addEventListener('click', renderSettingsMain);
 
         function renderSettingsMain() {
-            const cardData = [
-                { id: 'jamats', title: 'জামাত ও কিতাব', icon: navItems[3].icon },
-                { id: 'students', title: 'শিক্ষার্থী ব্যবস্থাপনা', icon: navItems[1].icon.replace('user','users') },
-                { id: 'years', title: 'শিক্ষাবর্ষ', icon: navItems[2].icon.replace('download','calendar') }
-            ];
-            settingsMain.innerHTML = cardData.map(card => `
-                 <div data-subpage="${card.id}" class="settings-card bg-gray-800 rounded-lg p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-gray-700 hover:shadow-cyan-500/20 shadow-lg transition-all duration-300 transform hover:-translate-y-2">
-                    <div class="text-cyan-400 mb-4">${card.icon.replace('class="lucide', 'class="lucide w-10 h-10"')}</div>
-                    <h3 class="text-xl font-bold text-white mb-2">${card.title}</h3>
+            settingsMain.style.display = 'block';
+             document.querySelectorAll('#settings-content > div:not(#settings-main)').forEach(el => el.remove());
+            settingsBackButton.classList.add('hidden');
+            settingsTitle.textContent = 'সেটিংস';
+
+            settingsMain.innerHTML = `
+                <div class="bg-gray-800 p-4 rounded-lg mb-6">
+                    <label for="font-selector" class="block text-sm font-medium text-gray-300 mb-2">অ্যাপ্লিকেশন ফন্ট পরিবর্তন করুন</label>
+                    <select id="font-selector" class="w-full md:w-1/3 bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-cyan-500 focus:border-cyan-500 text-white">
+                        <option value="hind-siliguri">হিন্দ শিলিগুড়ি</option>
+                        <option value="solaiman">সোলাইমান লিপি</option>
+                    </select>
                 </div>
-            `).join('');
-            
-            document.querySelectorAll('.settings-card').forEach(card => {
-                card.addEventListener('click', () => navigateSettings(card.dataset.subpage));
-            });
-            settingsBackButton.click();
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div data-subpage="jamats" class="settings-card bg-gray-800 rounded-lg p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-gray-700 hover:shadow-cyan-500/20 shadow-lg transition-all duration-300 transform hover:-translate-y-2">
+                        <div class="text-cyan-400 mb-4">${navItems.find(i=>i.id==='introduction').icon.replace('class="lucide', 'class="lucide w-10 h-10"')}</div>
+                        <h3 class="text-xl font-bold text-white mb-2">জামাত ও কিতাব</h3>
+                    </div>
+                     <div data-subpage="students" class="settings-card bg-gray-800 rounded-lg p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-gray-700 hover:shadow-cyan-500/20 shadow-lg transition-all duration-300 transform hover:-translate-y-2">
+                        <div class="text-cyan-400 mb-4">${navItems.find(i=>i.id==='attendance').icon.replace('user','users').replace('class="lucide', 'class="lucide w-10 h-10"')}</div>
+                        <h3 class="text-xl font-bold text-white mb-2">শিক্ষার্থী ব্যবস্থাপনা</h3>
+                    </div>
+                     <div data-subpage="years" class="settings-card bg-gray-800 rounded-lg p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-gray-700 hover:shadow-cyan-500/20 shadow-lg transition-all duration-300 transform hover:-translate-y-2">
+                        <div class="text-cyan-400 mb-4">${navItems.find(i=>i.id==='reports').icon.replace('download','calendar').replace('class="lucide', 'class="lucide w-10 h-10"')}</div>
+                        <h3 class="text-xl font-bold text-white mb-2">শিক্ষাবর্ষ</h3>
+                    </div>
+                </div>
+            `;
+            const fontSelector = document.getElementById('font-selector');
+            fontSelector.value = localStorage.getItem('preferredFont') || 'hind-siliguri';
         }
-        
+
         function renderSettingsYears() {
-            const container = settingsSubpages.years;
+            let container = document.getElementById('settings-years');
             container.innerHTML = `
                 <h3 class="text-xl font-bold text-white">শিক্ষাবর্ষ যোগ করুন</h3>
                 <form id="year-form" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end mt-4">
@@ -626,23 +645,28 @@
                 </form>
                 <div class="mt-6">
                     <h3 class="text-xl font-bold text-white mb-4">সংরক্ষিত শিক্ষাবর্ষসমূহ</h3>
-                    <ul id="years-list" class="space-y-2">
-                        ${state.academicYears.map(year => `
-                            <li key="${year.id}" class="bg-gray-700 p-3 rounded-md flex justify-between items-center">
-                                <span class="text-white">${year.hijri} (${year.gregorian})</span>
-                                <button data-id="${year.id}" class="delete-year-btn text-red-500 hover:text-red-400">
-                                    <svg class="lucide lucide-trash-2" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="m8 6 4-4 4 4"/></svg>
-                                </button>
-                            </li>
-                        `).join('')}
-                    </ul>
+                    <ul id="years-list" class="space-y-2"></ul>
                 </div>
             `;
+            renderYearsList();
+        }
+
+        function renderYearsList() {
+            const listEl = document.getElementById('years-list');
+            if(!listEl) return;
+            listEl.innerHTML = state.academicYears.map(year => `
+                <li key="${year.id}" class="bg-gray-700 p-3 rounded-md flex justify-between items-center">
+                    <span class="text-white">${year.hijri} (${year.gregorian})</span>
+                    <button data-id="${year.id}" class="delete-year-btn text-red-500 hover:text-red-400">
+                        <svg class="lucide lucide-trash-2" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="m8 6 4-4 4 4"/></svg>
+                    </button>
+                </li>
+            `).join('');
         }
         
         function renderSettingsStudents() {
-            const container = settingsSubpages.students;
-            const sortedStudents = state.students.sort((a,b) => (a.roll || 0) - (b.roll || 0));
+            let container = document.getElementById('settings-students');
+            const sortedStudents = [...state.students].sort((a,b) => (a.roll || 0) - (b.roll || 0));
             container.innerHTML = `
                 <div class="flex justify-between items-center mb-4">
                      <h3 class="text-xl font-bold text-white">শিক্ষার্থী তালিকা</h3>
@@ -679,7 +703,7 @@
         }
 
         function renderSettingsJamats() {
-            const container = settingsSubpages.jamats;
+            const container = document.getElementById('settings-jamats');
             const jamatId = state.editingJamatId;
 
             if (jamatId) {
@@ -691,34 +715,35 @@
             }
         }
         
-        settingsSubpages.jamats.addEventListener('click', async e => {
-            const editBtn = e.target.closest('.edit-jamat-btn');
-            if (editBtn) { state.editingJamatId = editBtn.dataset.id; const jamat = state.jamats[state.editingJamatId]; state.kitabNamesCache = jamat.kitabNames || Array.from({length: jamat.kitabCount}, (_,i) => `কিতাব নং ${i+1}`); renderSettingsJamats(); }
-            if (e.target.closest('#cancel-kitab-edit')) { state.editingJamatId = null; renderSettingsJamats(); }
-            if (e.target.closest('#add-kitab-btn')) { state.kitabNamesCache.push(`নতুন কিতাব ${state.kitabNamesCache.length + 1}`); renderSettingsJamats(); }
-            if (e.target.closest('.remove-kitab-btn')) { state.kitabNamesCache.splice(e.target.closest('.remove-kitab-btn').dataset.index, 1); renderSettingsJamats(); }
-            if (e.target.closest('#save-kitab-edit')) { const jamatRef = doc(db, `${basePath}/jamats`, state.editingJamatId); const newKitabNames = Array.from(document.querySelectorAll('.kitab-name-input')).map(input => input.value); try { await updateDoc(jamatRef, { kitabNames: newKitabNames, kitabCount: newKitabNames.length }); showModal('সফল', 'সফলভাবে সংরক্ষণ করা হয়েছে!'); state.editingJamatId = null; } catch (err) { showModal("ত্রুটি", "সংরক্ষণে সমস্যা হয়েছে।"); } }
-            if (e.target.closest('#init-jamats-btn')) { showModal("নিশ্চিতকরণ", "এটি ডাটাবেসের সমস্ত জামাত মুছে ফেলে ডিফল্ট ডেটা যোগ করবে। আপনি কি নিশ্চিত?", async () => { const batch = writeBatch(db); Object.entries(initialJamats).forEach(([id, data]) => batch.set(doc(db, `${basePath}/jamats`, id), data)); await batch.commit(); showModal("সফল", "ডিফল্ট জামাত যোগ করা হয়েছে।"); }); }
+        settingsContent.addEventListener('click', async e => {
+            const target = e.target.closest('button, select');
+            if (!target) return;
+            const id = target.id;
+            const classList = target.classList;
+            const dataset = target.dataset;
+
+            if(id === 'font-selector') { applyFont(target.value); return; }
+            if (classList.contains('settings-card')) { navigateSettings(dataset.subpage); return; }
+            if (id === 'init-jamats-btn') { showModal("নিশ্চিতকরণ", "এটি ডাটাবেসের সমস্ত জামাত মুছে ফেলে ডিফল্ট ডেটা যোগ করবে। আপনি কি নিশ্চিত?", async () => { const batch = writeBatch(db); Object.entries(initialJamats).forEach(([id, data]) => batch.set(doc(db, `${basePath}/jamats`, id), data)); await batch.commit(); showModal("সফল", "ডিফল্ট জামাত যোগ করা হয়েছে।"); }); return; }
+            if (classList.contains('edit-jamat-btn')) { state.editingJamatId = dataset.id; const jamat = state.jamats[state.editingJamatId]; state.kitabNamesCache = jamat.kitabNames || Array.from({length: jamat.kitabCount}, (_,i) => `কিতাব নং ${i+1}`); renderSettingsJamats(); return; }
+            if (id === 'cancel-kitab-edit') { state.editingJamatId = null; renderSettingsJamats(); return; }
+            if (id === 'add-kitab-btn') { state.kitabNamesCache.push(`নতুন কিতাব ${state.kitabNamesCache.length + 1}`); renderSettingsJamats(); return; }
+            if (classList.contains('remove-kitab-btn')) { state.kitabNamesCache.splice(dataset.index, 1); renderSettingsJamats(); return; }
+            if (id === 'save-kitab-edit') { const jamatRef = doc(db, `${basePath}/jamats`, state.editingJamatId); const newKitabNames = Array.from(document.querySelectorAll('.kitab-name-input')).map(input => input.value); try { await updateDoc(jamatRef, { kitabNames: newKitabNames, kitabCount: newKitabNames.length }); showModal('সফল', 'সফলভাবে সংরক্ষণ করা হয়েছে!'); state.editingJamatId = null; renderSettingsJamats();} catch (err) { showModal("ত্রুটি", "সংরক্ষণে সমস্যা হয়েছে।"); } return; }
+            if (id === 'add-student-btn') { openStudentModal(); return; }
+            if (classList.contains('edit-student-btn')) { openStudentModal(state.students.find(s => s.id === dataset.id)); return; }
+            if (classList.contains('delete-student-btn')) { showModal('নিশ্চিতকরণ', 'আপনি কি নিশ্চিতভাবে এই শিক্ষার্থীকে মুছে ফেলতে চান?', async () => { await deleteDoc(doc(db, `${basePath}/students`, dataset.id)); showModal('সফল', 'শিক্ষার্থীকে সফলভাবে মুছে ফেলা হয়েছে।'); }); return; }
+            if (classList.contains('delete-year-btn')) { showModal("নিশ্চিতকরণ", "আপনি কি নিশ্চিতভাবে এই শিক্ষাবর্ষটি মুছে ফেলতে চান?", async () => { await deleteDoc(doc(db, `${basePath}/academicYears`, dataset.id)); showModal("সফল", "শিক্ষাবর্ষটি মুছে ফেলা হয়েছে।"); }); return; }
         });
         
-        const studentForm = document.getElementById('student-form');
-        settingsSubpages.students.addEventListener('click', e => {
-            if (e.target.closest('#add-student-btn')) openStudentModal();
-            if (e.target.closest('.edit-student-btn')) openStudentModal(state.students.find(s => s.id === e.target.closest('.edit-student-btn').dataset.id));
-            if (e.target.closest('.delete-student-btn')) { showModal('নিশ্চিতকরণ', 'আপনি কি নিশ্চিতভাবে এই শিক্ষার্থীকে মুছে ফেলতে চান?', async () => { await deleteDoc(doc(db, `${basePath}/students`, e.target.closest('.delete-student-btn').dataset.id)); showModal('সফল', 'শিক্ষার্থীকে সফলভাবে মুছে ফেলা হয়েছে।'); }); }
-        });
-
-        function openStudentModal(student=null){ const form = studentForm; form.reset(); if(student){ form.querySelector('#student-modal-title').textContent='শিক্ষার্থী সম্পাদনা করুন'; form.querySelector('#student-id').value=student.id; form.querySelector('#student-name').value=student.name; form.querySelector('#student-roll').value=student.roll; form.querySelector('#student-jamat').value=student.jamatId; form.querySelector('#student-modal-submit').textContent='আপডেট করুন';} else { form.querySelector('#student-modal-title').textContent='নতুন শিক্ষার্থী যোগ করুন'; form.querySelector('#student-id').value=''; form.querySelector('#student-modal-submit').textContent='যোগ করুন';} studentModalEl.classList.add('is-open'); }
-        document.getElementById('student-modal-cancel').addEventListener('click', ()=>studentModalEl.classList.remove('is-open'));
-        studentForm.addEventListener('submit', async e => { e.preventDefault(); const studentData = { name: studentForm.querySelector('#student-name').value, roll: Number(studentForm.querySelector('#student-roll').value), jamatId: studentForm.querySelector('#student-jamat').value }; const studentId = studentForm.querySelector('#student-id').value; try { if(studentId) await updateDoc(doc(db, `${basePath}/students`, studentId), studentData); else await addDoc(collection(db, `${basePath}/students`), studentData); showModal('সফল', `শিক্ষার্থীর তথ্য সফলভাবে ${studentId ? 'আপডেট' : 'যোগ'} করা হয়েছে।`); studentModalEl.classList.remove('is-open'); } catch (err) { showModal('ত্রুটি', 'শিক্ষার্থীর তথ্য সংরক্ষণে সমস্যা হয়েছে।'); } });
-
-        settingsSubpages.years.addEventListener('click', e => {
-            const deleteBtn = e.target.closest('.delete-year-btn');
-            if (deleteBtn) { showModal("নিশ্চিতকরণ", "আপনি কি নিশ্চিতভাবে এই শিক্ষাবর্ষটি মুছে ফেলতে চান?", async () => { await deleteDoc(doc(db, `${basePath}/academicYears`, deleteBtn.dataset.id)); showModal("সফল", "শিক্ষাবর্ষটি মুছে ফেলা হয়েছে।"); }); }
-        });
-        settingsSubpages.years.addEventListener('submit', async e => {
+        settingsContent.addEventListener('submit', async e => {
             if (e.target.id === 'year-form') { e.preventDefault(); const hijri = e.target.querySelector('#year-hijri').value; const gregorian = e.target.querySelector('#year-gregorian').value; try { await addDoc(collection(db, `${basePath}/academicYears`), { hijri, gregorian }); showModal("সফল", "শিক্ষাবর্ষ সফলভাবে যোগ করা হয়েছে।"); e.target.reset(); } catch (err) { showModal("ত্রুটি", "শিক্ষাবর্ষ যোগ করতে সমস্যা হয়েছে।"); } }
         });
+
+        function openStudentModal(student=null){ const form = document.getElementById('student-form'); form.reset(); if(student){ form.querySelector('#student-modal-title').textContent='শিক্ষার্থী সম্পাদনা করুন'; form.querySelector('#student-id').value=student.id; form.querySelector('#student-name').value=student.name; form.querySelector('#student-roll').value=student.roll; form.querySelector('#student-jamat').value=student.jamatId; form.querySelector('#student-modal-submit').textContent='আপডেট করুন';} else { form.querySelector('#student-modal-title').textContent='নতুন শিক্ষার্থী যোগ করুন'; form.querySelector('#student-id').value=''; form.querySelector('#student-modal-submit').textContent='যোগ করুন';} studentModalEl.classList.add('is-open'); }
+        document.getElementById('student-modal-cancel').addEventListener('click', ()=>studentModalEl.classList.remove('is-open'));
+        document.getElementById('student-form').addEventListener('submit', async e => { e.preventDefault(); const form = e.target; const studentData = { name: form.querySelector('#student-name').value, roll: Number(form.querySelector('#student-roll').value), jamatId: form.querySelector('#student-jamat').value }; const studentId = form.querySelector('#student-id').value; try { if(studentId) await updateDoc(doc(db, `${basePath}/students`, studentId), studentData); else await addDoc(collection(db, `${basePath}/students`), studentData); showModal('সফল', `শিক্ষার্থীর তথ্য সফলভাবে ${studentId ? 'আপডেট' : 'যোগ'} করা হয়েছে।`); studentModalEl.classList.remove('is-open'); } catch (err) { showModal('ত্রুটি', 'শিক্ষার্থীর তথ্য সংরক্ষণে সমস্যা হয়েছে।'); } });
+        
 
         // --- Reports Page ---
         const repYear = document.getElementById('rep-year');
@@ -782,57 +807,73 @@
             window.XLSX.writeFile(wb, `${currentJamat.name}_Report.xlsx`);
         });
 
-        // --- Auth Flow ---
-        async function signInAndSetup() {
-            onAuthStateChanged(auth, (user) => {
-                if (user) {
-                    if (!state.userId) { // To avoid multiple initializations
-                        state.userId = user.uid;
-                        initializeDataListeners();
-                    }
-                }
-            });
-
-            if (!auth.currentUser) {
-                 try {
-                    const customToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-                    if (customToken) {
-                        await signInWithCustomToken(auth, customToken);
-                    } else {
-                        await signInAnonymously(auth);
-                    }
-                } catch (error) {
-                    console.error("Authentication Error:", error);
-                    showModal("ত্রুটি", "সিস্টেমে প্রবেশ করতে সমস্যা হচ্ছে। ইন্টারনেট সংযোগ পরীক্ষা করে দেখুন।");
-                    loader.textContent = "সিস্টেমে প্রবেশ করা সম্ভব হচ্ছে না।";
-                }
+        // --- Font Switcher Logic ---
+        function applyFont(fontName) {
+            document.body.classList.remove('font-solaiman', 'font-hind-siliguri');
+            if (fontName === 'solaiman') {
+                document.body.classList.add('font-solaiman');
             } else {
-                if (!state.userId) {
-                    state.userId = auth.currentUser.uid;
-                    initializeDataListeners();
-                }
+                document.body.classList.add('font-hind-siliguri');
             }
+            localStorage.setItem('preferredFont', fontName);
         }
 
+        settingsContent.addEventListener('change', e => {
+            if (e.target.id === 'font-selector') {
+                applyFont(e.target.value);
+            }
+        });
+
+
+        // --- Auth & Initialization Flow ---
         function initializeDataListeners() {
             if (!state.userId) return;
-            onSnapshot(collection(db, `${basePath}/academicYears`), s => { state.academicYears = s.docs.map(d=>({id: d.id, ...d.data()})); populateSelect(attYearSelect, state.academicYears, 'id', i=>`${i.hijri} (${i.gregorian})`); populateSelect(repYear, state.academicYears, 'id', i=>`${i.hijri} (${i.gregorian})`); if(state.academicYears.length > 0 && !state.selectedFilters.year) { state.selectedFilters.year = state.academicYears[0].id; attYearSelect.value = state.selectedFilters.year; repYear.value = state.selectedFilters.year; } renderSettingsYears(); });
-            onSnapshot(collection(db, `${basePath}/jamats`), s => { state.jamats={}; const list=[]; s.docs.forEach(d=>{state.jamats[d.id]=d.data(); list.push({id:d.id,...d.data()})}); populateSelect(attJamatSelect,list,'id','name'); populateSelect(repJamat,list,'id','name'); populateSelect(document.getElementById('student-jamat'),list,'id','name'); if(list.length>0&&!state.selectedFilters.jamat){ state.selectedFilters.jamat=list[0].id; attJamatSelect.value=list[0].id; repJamat.value=list[0].id; fetchAttendance(); } renderSettingsJamats(); });
+            onSnapshot(collection(db, `${basePath}/academicYears`), s => { state.academicYears = s.docs.map(d=>({id: d.id, ...d.data()})); populateSelect(attYearSelect, state.academicYears, 'id', i=>`${i.hijri} (${i.gregorian})`); populateSelect(repYear, state.academicYears, 'id', i=>`${i.hijri} (${i.gregorian})`); if(state.academicYears.length > 0 && !state.selectedFilters.year) { state.selectedFilters.year = state.academicYears[0].id; attYearSelect.value = state.selectedFilters.year; repYear.value = state.selectedFilters.year; } if(state.currentPage === 'settings') renderSettingsYears(); });
+            onSnapshot(collection(db, `${basePath}/jamats`), s => { state.jamats={}; const list=[]; s.docs.forEach(d=>{state.jamats[d.id]=d.data(); list.push({id:d.id,...d.data()})}); populateSelect(attJamatSelect,list,'id','name'); populateSelect(repJamat,list,'id','name'); populateSelect(document.getElementById('student-jamat'),list,'id','name'); if(list.length>0&&!state.selectedFilters.jamat){ state.selectedFilters.jamat=list[0].id; attJamatSelect.value=list[0].id; repJamat.value=list[0].id; fetchAttendance(); } if(state.currentPage === 'settings') renderSettingsJamats(); });
             onSnapshot(collection(db, `${basePath}/students`), s => { state.students = s.docs.map(d=>({id: d.id, ...d.data()})); if(state.currentPage==='attendance') renderAttendanceTable(); if(state.currentPage==='settings') renderSettingsStudents(); });
+            
             loader.style.display = 'none';
             navigate('home');
         }
 
-        // --- Entry Point ---
-        document.addEventListener('DOMContentLoaded', () => {
+        async function main() {
+            // Apply saved font preference on load
+            const savedFont = localStorage.getItem('preferredFont') || 'hind-siliguri';
+            applyFont(savedFont);
+
             renderNav();
             renderHome();
             populateSelect(attExamSelect, examTypes.map(e=>({id:e,name:e})),'id','name',{placeholder:'পরীক্ষা নির্বাচন করুন'});
             attExamSelect.value = state.selectedFilters.exam;
             populateSelect(repExam, examTypes.map(e=>({id:e,name:e})),'id','name',{placeholder:'পরীক্ষা নির্বাচন করুন'});
             repExam.value = examTypes[0];
-            signInAndSetup();
-        });
+
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    if (!state.userId) { // Initialize only once
+                        state.userId = user.uid;
+                        initializeDataListeners();
+                    }
+                } else {
+                    try {
+                        const customToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+                        if (customToken) {
+                           await signInWithCustomToken(auth, customToken);
+                        } else {
+                           await signInAnonymously(auth);
+                        }
+                    } catch (error) {
+                        console.error("Authentication Error:", error);
+                        showModal("ত্রুটি", "সিস্টেমে প্রবেশ করতে সমস্যা হচ্ছে। ইন্টারনেট সংযোগ পরীক্ষা করে দেখুন।");
+                        loader.textContent = "সিস্টেমে প্রবেশ করা সম্ভব হচ্ছে না।";
+                    }
+                }
+            });
+        }
+        
+        // --- Entry Point ---
+        document.addEventListener('DOMContentLoaded', main);
+
     </script>
 </body>
-</html
+</html>
