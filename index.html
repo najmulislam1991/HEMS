@@ -8,10 +8,8 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Google Fonts: Hind Siliguri -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- SolaimanLipi Webfont from CDN -->
+    <link href="https://cdn.jsdelivr.net/gh/Siam-Mahbub/solaimanlipi-webfont@master/solaimanlipi.min.css" rel="stylesheet">
     
     <!-- PDF & Excel Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -19,20 +17,11 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
-        /* Default font set to Hind Siliguri */
+        /* Default font set to SolaimanLipi */
         body {
-            font-family: 'Hind Siliguri', sans-serif;
+            font-family: 'SolaimanLipi', sans-serif;
             background-color: #111827; /* bg-gray-900 */
             color: #d1d5db; /* text-gray-300 */
-            transition: font-family 0.3s ease-in-out;
-        }
-        /* Class for SolaimanLipi */
-        .font-solaiman {
-            font-family: 'SolaimanLipi', 'Hind Siliguri', sans-serif;
-        }
-        /* Class for Hind Siliguri (explicitly) */
-        .font-hind-siliguri {
-            font-family: 'Hind Siliguri', sans-serif;
         }
         .page {
             display: none;
@@ -607,13 +596,6 @@
             settingsTitle.textContent = 'সেটিংস';
 
             settingsMain.innerHTML = `
-                <div class="bg-gray-800 p-4 rounded-lg mb-6">
-                    <label for="font-selector" class="block text-sm font-medium text-gray-300 mb-2">অ্যাপ্লিকেশন ফন্ট পরিবর্তন করুন</label>
-                    <select id="font-selector" class="w-full md:w-1/3 bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-cyan-500 focus:border-cyan-500 text-white">
-                        <option value="hind-siliguri">হিন্দ শিলিগুড়ি</option>
-                        <option value="solaiman">সোলাইমান লিপি</option>
-                    </select>
-                </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <div data-subpage="jamats" class="settings-card bg-gray-800 rounded-lg p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-gray-700 hover:shadow-cyan-500/20 shadow-lg transition-all duration-300 transform hover:-translate-y-2">
                         <div class="text-cyan-400 mb-4">${navItems.find(i=>i.id==='introduction').icon.replace('class="lucide', 'class="lucide w-10 h-10"')}</div>
@@ -629,8 +611,6 @@
                     </div>
                 </div>
             `;
-            const fontSelector = document.getElementById('font-selector');
-            fontSelector.value = localStorage.getItem('preferredFont') || 'hind-siliguri';
         }
 
         function renderSettingsYears() {
@@ -722,8 +702,6 @@
             const id = target.id;
             const classList = target.classList;
             const dataset = target.dataset;
-
-            if(id === 'font-selector') { applyFont(target.value); return; }
             if (classList.contains('settings-card')) { navigateSettings(dataset.subpage); return; }
             if (id === 'init-jamats-btn') { showModal("নিশ্চিতকরণ", "এটি ডাটাবেসের সমস্ত জামাত মুছে ফেলে ডিফল্ট ডেটা যোগ করবে। আপনি কি নিশ্চিত?", async () => { const batch = writeBatch(db); Object.entries(initialJamats).forEach(([id, data]) => batch.set(doc(db, `${basePath}/jamats`, id), data)); await batch.commit(); showModal("সফল", "ডিফল্ট জামাত যোগ করা হয়েছে।"); }); return; }
             if (classList.contains('edit-jamat-btn')) { state.editingJamatId = dataset.id; const jamat = state.jamats[state.editingJamatId]; state.kitabNamesCache = jamat.kitabNames || Array.from({length: jamat.kitabCount}, (_,i) => `কিতাব নং ${i+1}`); renderSettingsJamats(); return; }
@@ -808,87 +786,74 @@
             window.XLSX.writeFile(wb, `${currentJamat.name}_Report.xlsx`);
         });
 
-        // --- Font Switcher Logic ---
-        function applyFont(fontName) {
-            document.body.classList.remove('font-solaiman', 'font-hind-siliguri');
-            if (fontName === 'solaiman') {
-                document.body.classList.add('font-solaiman');
-            } else {
-                document.body.classList.add('font-hind-siliguri');
-            }
-            localStorage.setItem('preferredFont', fontName);
-        }
-
-        settingsContent.addEventListener('change', e => {
-            if (e.target.id === 'font-selector') {
-                applyFont(e.target.value);
-            }
-        });
-
-
         // --- Auth & Initialization Flow ---
         function initializeDataListeners() {
             if (!state.userId || state.unsubscribers.length > 0) return; // Prevent multiple listeners
             
-            const collectionsToWatch = {
-                academicYears: 'academicYears',
-                jamats: 'jamats',
-                students: 'students'
+            const initialDataLoaded = {
+                academicYears: false,
+                jamats: false,
+                students: false,
             };
 
-            for(const [stateKey, collectionName] of Object.entries(collectionsToWatch)) {
-                const q = query(collection(db, `${basePath}/${collectionName}`));
-                const unsubscribe = onSnapshot(q, (snapshot) => {
-                    if (collectionName === 'jamats') {
-                        state.jamats = {};
-                        snapshot.docs.forEach(d => state.jamats[d.id] = d.data());
-                    } else {
-                        state[stateKey] = snapshot.docs.map(d => ({id: d.id, ...d.data()}));
-                    }
-                    
-                    // Trigger re-render of relevant parts
-                    if (state.currentPage === 'settings') {
-                        if (collectionName === 'academicYears') renderSettingsYears();
-                        if (collectionName === 'jamats') renderSettingsJamats();
-                        if (collectionName === 'students') renderSettingsStudents();
-                    }
-                    if (state.currentPage === 'attendance' && collectionName !== 'academicYears') {
-                        renderAttendanceTable();
-                    }
-                });
-                state.unsubscribers.push(unsubscribe);
-            }
+            const checkAllDataLoaded = () => {
+                if (Object.values(initialDataLoaded).every(Boolean)) {
+                    loader.style.display = 'none';
+                    navigate('home');
+                }
+            };
             
-            // Initial population of dropdowns after first data fetch
-            setTimeout(() => {
-                populateSelect(attYearSelect, state.academicYears, 'id', i => `${i.hijri} (${i.gregorian})`);
-                populateSelect(repYear, state.academicYears, 'id', i => `${i.hijri} (${i.gregorian})`);
-                if(state.academicYears.length > 0 && !state.selectedFilters.year) {
-                    state.selectedFilters.year = state.academicYears[0].id;
-                    attYearSelect.value = state.selectedFilters.year;
-                    repYear.value = state.selectedFilters.year;
+            const unsubYears = onSnapshot(collection(db, `${basePath}/academicYears`), snapshot => {
+                state.academicYears = snapshot.docs.map(d=>({id: d.id, ...d.data()}));
+                if (!initialDataLoaded.academicYears) {
+                    populateSelect(attYearSelect, state.academicYears, 'id', i=>`${i.hijri} (${i.gregorian})`);
+                    populateSelect(repYear, state.academicYears, 'id', i=>`${i.hijri} (${i.gregorian})`);
+                    if(state.academicYears.length > 0) {
+                        attYearSelect.value = state.academicYears[0].id;
+                        repYear.value = state.academicYears[0].id;
+                        state.selectedFilters.year = state.academicYears[0].id;
+                    }
+                    initialDataLoaded.academicYears = true;
+                    checkAllDataLoaded();
                 }
-                const jamatList = Object.entries(state.jamats).map(([id, data])=>({id, ...data}));
-                populateSelect(attJamatSelect, jamatList, 'id', 'name');
-                populateSelect(repJamat, jamatList, 'id', 'name');
-                populateSelect(document.getElementById('student-jamat'), jamatList, 'id', 'name');
-                if(jamatList.length > 0 && !state.selectedFilters.jamat) {
-                    state.selectedFilters.jamat = jamatList[0].id;
-                    attJamatSelect.value = jamatList[0].id;
-                    repJamat.value = jamatList[0].id;
-                    fetchAttendance();
+                if(state.currentPage === 'settings') renderSettingsYears();
+            });
+            state.unsubscribers.push(unsubYears);
+            
+            const unsubJamats = onSnapshot(collection(db, `${basePath}/jamats`), snapshot => {
+                state.jamats={}; 
+                const list=[]; 
+                snapshot.docs.forEach(d=>{state.jamats[d.id]=d.data(); list.push({id:d.id,...d.data()})});
+                if (!initialDataLoaded.jamats) {
+                     populateSelect(attJamatSelect,list,'id','name');
+                     populateSelect(repJamat,list,'id','name');
+                     populateSelect(document.getElementById('student-jamat'),list,'id','name');
+                     if(list.length>0){ 
+                         attJamatSelect.value=list[0].id; 
+                         repJamat.value=list[0].id;
+                         state.selectedFilters.jamat = list[0].id;
+                         fetchAttendance();
+                     }
+                    initialDataLoaded.jamats = true;
+                    checkAllDataLoaded();
                 }
+                if(state.currentPage === 'settings') renderSettingsJamats();
+            });
+             state.unsubscribers.push(unsubJamats);
 
-                loader.style.display = 'none';
-                navigate('home');
-            }, 500); // Small delay to ensure initial data is likely present
+            const unsubStudents = onSnapshot(collection(db, `${basePath}/students`), snapshot => {
+                state.students = snapshot.docs.map(d=>({id: d.id, ...d.data()}));
+                if (state.currentPage==='attendance') renderAttendanceTable(); 
+                if (state.currentPage==='settings') renderSettingsStudents();
+                if (!initialDataLoaded.students) {
+                    initialDataLoaded.students = true;
+                    checkAllDataLoaded();
+                }
+            });
+            state.unsubscribers.push(unsubStudents);
         }
 
         async function main() {
-            // Apply saved font preference on load
-            const savedFont = localStorage.getItem('preferredFont') || 'hind-siliguri';
-            applyFont(savedFont);
-
             renderNav();
             renderHome();
             populateSelect(attExamSelect, examTypes.map(e=>({id:e,name:e})),'id','name',{placeholder:'পরীক্ষা নির্বাচন করুন'});
@@ -925,4 +890,3 @@
     </script>
 </body>
 </html>
-" and the user's query is "অন্যান্য আইকনের মতই সেটিং আইকন দাও,স্টাইলের কথা বল
