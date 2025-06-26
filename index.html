@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="bn" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hasania Exam Management System</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Inter and Hind Siliguri (Popular Bengali Font) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- jsPDF for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    
+    <!-- SheetJS (xlsx) for Excel export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <!-- Chart.js for charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Custom Styles -->
+    <style>
+        body {
+            /* Using Hind Siliguri as the primary font for Bengali */
+            font-family: 'Hind Siliguri', 'Inter', sans-serif;
+            background-color: #111827; /* Dark gray background */
+            color: #d1d5db; /* Light gray text */
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        main {
+            flex-grow: 1;
+        }
+        .dark .bg-gray-800 { background-color: #1f2937; }
+        .dark .bg-gray-900 { background-color: #111827; }
+        .dark .text-gray-200 { color: #e5e7eb; }
+        .dark .text-gray-400 { color: #9ca3af; }
+        .dark .border-gray-700 { border-color: #374151; }
+        .dark .hover\:bg-gray-700:hover { background-color: #374151; }
+        .dark select, .dark input, .dark textarea {
+            background-color: #374151;
+            border-color: #4b5563;
+            color: #e5e7eb;
+        }
+        .dark select:focus, .dark input:focus, .dark textarea:focus {
+            --tw-ring-color: #3b82f6;
+            border-color: #3b82f6;
+        }
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.6);
+        }
+        .modal-content {
+            background-color: #1f2937;
+            margin: 10% auto;
+            padding: 2rem;
+            border: 1px solid #4b5563;
+            width: 90%;
+            max-width: 500px;
+            border-radius: 0.5rem;
+            animation: fadeIn 0.3s;
+        }
+        @keyframes fadeIn {
+            from {opacity: 0; transform: scale(0.95);}
+            to {opacity: 1; transform: scale(1);}
+        }
+        .close-button {
+            color: #9ca3af;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close-button:hover, .close-button:focus {
+            color: #e5e7eb;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        /* Custom radio buttons */
+        .attendance-radio { display: flex; align-items: center; cursor: pointer; }
+        .attendance-radio input { display: none; }
+        .attendance-radio .radio-circle {
+            width: 20px; height: 20px; border-radius: 50%; border: 2px solid #6b7280;
+            margin-right: 8px; display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s;
+        }
+        .attendance-radio input:checked + .radio-circle { border-color: #2563eb; }
+        .attendance-radio input:checked + .radio-circle::after {
+            content: ''; width: 10px; height: 10px; border-radius: 50%; background-color: #2563eb;
+        }
+        button:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200">
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-5 right-5 bg-green-500 text-white py-2 px-4 rounded-lg shadow-lg transform translate-x-full transition-transform duration-300">
+        <p id="toast-message"></p>
+    </div>
+
+    <!-- Navigation Bar -->
+    <nav class="bg-gray-800 shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <span class="font-bold text-xl text-white">Hasania Exam Management System</span>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#home" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-white bg-gray-900 flex items-center"><i class="fas fa-home mr-2"></i>হোম</a>
+                        <a href="#attendance" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white flex items-center"><i class="fas fa-user-check mr-2"></i>পরীক্ষার্থী হাজিরা</a>
+                        <a href="#reports" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white flex items-center"><i class="fas fa-download mr-2"></i>রিপোর্ট ডাউনলোড</a>
+                        <a href="#settings" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white flex items-center"><i class="fas fa-cogs mr-2"></i>সেটিংস</a>
+                        <a href="#about-jamia" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white flex items-center"><i class="fas fa-landmark mr-2"></i>জামিয়ার পরিচয়</a>
+                        <a href="#about-hems" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white flex items-center"><i class="fas fa-info-circle mr-2"></i>HEMS সম্পর্কে</a>
+                    </div>
+                </div>
+                <div class="-mr-2 flex md:hidden">
+                    <button type="button" id="mobile-menu-button" class="bg-gray-800 inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white" aria-controls="mobile-menu" aria-expanded="false">
+                        <span class="sr-only">Open main menu</span>
+                        <i class="fas fa-bars"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- Mobile menu, show/hide based on menu state. -->
+        <div class="md:hidden" id="mobile-menu" style="display: none;">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="#home" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-white bg-gray-900 flex items-center"><i class="fas fa-home mr-2"></i>হোম</a>
+                <a href="#attendance" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white flex items-center"><i class="fas fa-user-check mr-2"></i>পরীক্ষার্থী হাজিরা</a>
+                <a href="#reports" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white flex items-center"><i class="fas fa-download mr-2"></i>রিপোর্ট ডাউনলোড</a>
+                <a href="#settings" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white flex items-center"><i class="fas fa-cogs mr-2"></i>সেটিংস</a>
+                <a href="#about-jamia" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white flex items-center"><i class="fas fa-landmark mr-2"></i>জামিয়ার পরিচয়</a>
+                <a href="#about-hems" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white flex items-center"><i class="fas fa-info-circle mr-2"></i>HEMS সম্পর্কে</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8 w-full">
+        
+        <!-- Home Page -->
+        <div id="home" class="page px-4 py-6 sm:px-0">
+            <header class="text-center mb-8">
+                <h1 class="text-4xl font-bold text-white">Hasania Exam Management System-এ স্বাগতম</h1>
+                <p class="mt-2 text-lg text-gray-400">আপনার মাদরাসার পরীক্ষার হাজিরা ব্যবস্থাপনার আধুনিক সমাধান</p>
+            </header>
+            
+            <!-- Attendance Section -->
+            <div id="attendance" class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                <h2 class="text-2xl font-semibold mb-6 text-white border-b-2 border-gray-700 pb-2">পরীক্ষার্থীদের হাজিরা নিন</h2>
+                
+                <!-- Filters -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+                    <select id="attendance-year" class="w-full p-2 rounded-md"></select>
+                    <select id="attendance-exam" class="w-full p-2 rounded-md">
+                        <option value="">পরীক্ষা নির্বাচন করুন</option>
+                        <option value="১ম সাময়িক পরীক্ষা">১ম সাময়িক পরীক্ষা</option>
+                        <option value="২য় সাময়িক পরীক্ষা">২য় সাময়িক পরীক্ষা</option>
+                        <option value="বার্ষিক পরীক্ষা">বার্ষিক পরীক্ষা</option>
+                    </select>
+                    <select id="attendance-jamia" class="w-full p-2 rounded-md"><option>লোড হচ্ছে...</option></select>
+                    <select id="attendance-kitab" class="w-full p-2 rounded-md"><option>জামাত নির্বাচন করুন</option></select>
+                    <input type="date" id="attendance-date" class="w-full p-2 rounded-md">
+                </div>
+                <div class="text-center mb-6">
+                     <button id="load-attendance-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition duration-300">
+                        <i class="fas fa-search mr-2"></i>হাজিরা তালিকা লোড করুন
+                    </button>
+                </div>
+
+                <!-- Attendance Table -->
+                <div id="attendance-table-container" class="mt-6 hidden">
+                    <div class="flex justify-between items-center mb-4">
+                         <h3 class="text-xl font-semibold text-white">হাজিরা তালিকা</h3>
+                         <button id="mark-all-present-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition">
+                            <i class="fas fa-check-double mr-2"></i>সবাইকে উপস্থিত করুন
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full bg-gray-800 rounded-lg">
+                            <thead class="bg-gray-700">
+                                <tr>
+                                    <th class="py-3 px-4 text-left text-sm font-semibold text-gray-300">ক্রমিক নং</th>
+                                    <th class="py-3 px-4 text-left text-sm font-semibold text-gray-300">শিক্ষার্থীর নাম</th>
+                                    <th class="py-3 px-4 text-center text-sm font-semibold text-gray-300">হাজিরা</th>
+                                </tr>
+                            </thead>
+                            <tbody id="attendance-list">
+                                <!-- Student rows will be injected here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-6 text-right">
+                        <button id="save-attendance-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg transition">
+                            <i class="fas fa-save mr-2"></i>হাজিরা সংরক্ষণ করুন
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reports Page -->
+        <div id="reports" class="page hidden px-4 py-6 sm:px-0">
+            <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                <h2 class="text-2xl font-semibold mb-6 text-white border-b-2 border-gray-700 pb-2">রিপোর্ট ডাউনলোড</h2>
+                 <!-- Report Filters -->
+                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                    <select id="report-year" class="w-full p-2 rounded-md"></select>
+                    <select id="report-exam" class="w-full p-2 rounded-md">
+                        <option value="">সকল পরীক্ষা</option>
+                        <option value="১ম সাময়িক পরীক্ষা">১ম সাময়িক পরীক্ষা</option>
+                        <option value="২য় সাময়িক পরীক্ষা">২য় সাময়িক পরীক্ষা</option>
+                        <option value="বার্ষিক পরীক্ষা">বার্ষিক পরীক্ষা</option>
+                    </select>
+                    <select id="report-jamia" class="w-full p-2 rounded-md"></select>
+                </div>
+                <div class="text-center mb-6">
+                     <button id="generate-report-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition duration-300">
+                        <i class="fas fa-cogs mr-2"></i>রিপোর্ট তৈরি করুন
+                    </button>
+                </div>
+
+                <!-- Report Preview -->
+                <div id="report-preview-container" class="mt-6 hidden">
+                    <h3 class="text-xl font-semibold text-white mb-4">রিপোর্ট প্রিভিউ</h3>
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="lg:col-span-1 bg-gray-700 p-4 rounded-lg">
+                            <h4 class="text-lg font-semibold text-center mb-2">হাজিরার গড়</h4>
+                            <canvas id="attendance-chart"></canvas>
+                        </div>
+                        <div class="lg:col-span-2 overflow-x-auto">
+                            <table class="min-w-full bg-gray-800 rounded-lg">
+                                <thead id="report-table-head" class="bg-gray-700"></thead>
+                                <tbody id="report-table-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="mt-6 text-center space-x-4">
+                        <button id="download-pdf-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-lg transition">
+                            <i class="fas fa-file-pdf mr-2"></i>PDF ডাউনলোড
+                        </button>
+                        <button id="download-excel-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg transition">
+                            <i class="fas fa-file-excel mr-2"></i>Excel ডাউনলোড
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Settings Page -->
+        <div id="settings" class="page hidden px-4 py-6 sm:px-0">
+             <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                <h2 class="text-2xl font-semibold mb-6 text-white border-b-2 border-gray-700 pb-2">সেটিংস</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- Student Management -->
+                    <div>
+                        <h3 class="text-xl font-semibold text-white mb-4">ছাত্র ব্যবস্থাপনা</h3>
+                        <button id="add-student-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg mb-4">
+                            <i class="fas fa-plus mr-2"></i>নতুন ছাত্র যোগ করুন
+                        </button>
+                        <select id="student-filter-jamia" class="w-full p-2 rounded-md mb-4"></select>
+                        <div id="student-list-settings" class="space-y-2 max-h-96 overflow-y-auto">
+                            <!-- Student list for settings -->
+                        </div>
+                    </div>
+                    <!-- Kitab Management -->
+                    <div>
+                        <h3 class="text-xl font-semibold text-white mb-4">কিতাব ব্যবস্থাপনা</h3>
+                        <select id="kitab-filter-jamia" class="w-full p-2 rounded-md mb-4"></select>
+                         <button id="add-kitab-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg mb-4">
+                            <i class="fas fa-plus mr-2"></i>নতুন কিতাব যোগ করুন
+                        </button>
+                        <div id="kitab-list-settings" class="space-y-2 max-h-96 overflow-y-auto">
+                            <!-- Kitab list for settings -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- About Jamia Page -->
+        <div id="about-jamia" class="page hidden px-4 py-6 sm:px-0">
+            <div class="bg-gray-800 p-8 rounded-lg shadow-lg">
+                <h2 class="text-3xl font-bold mb-4 text-white">জামিয়া হাসানিয়া কওমীয়া মাদরাসা ও এতিমখানা</h2>
+                <p class="text-gray-300 leading-relaxed">
+                    নড়াইল জেলার কালিয়া উপজেলার রঘুনাথপুর গ্রামে অবস্থিত "জামিয়া হাসানিয়া কওমীয়া মাদরাসা ও এতিমখানা" একটি ঐতিহ্যবাহী দ্বীনি শিক্ষা প্রতিষ্ঠান। মনোরম ও কোলাহলমুক্ত পরিবেশে অবস্থিত এই জামিয়া যুগ যুগ ধরে ইলমে ওহীর আলো বিলিয়ে আসছে।
+                </p>
+                <p class="mt-4 text-gray-300 leading-relaxed">
+                    আমাদের লক্ষ্য হলো কুরআন ও সুন্নাহর আলোকে যোগ্য আলেম তৈরি করার পাশাপাশি ছাত্রদেরকে নৈতিক ও আদর্শবান মানুষ হিসেবে গড়ে তোলা। এখানে দ্বীনিয়াত শিক্ষার পাশাপাশি এতিম ও অসহায় ছাত্রদের জন্য থাকা-খাওয়ার সুব্যবস্থা রয়েছে। আল্লাহ তা'আলার অশেষ মেহেরবাণীতে, এই প্রতিষ্ঠানটি স্থানীয়দের সহযোগিতায় ইসলামের এক সুদৃঢ় দুর্গ হিসেবে পরিচালিত হচ্ছে।
+                </p>
+            </div>
+        </div>
+        
+        <!-- About HEMS Page -->
+        <div id="about-hems" class="page hidden px-4 py-6 sm:px-0">
+             <div class="bg-gray-800 p-8 rounded-lg shadow-lg">
+                <h2 class="text-3xl font-bold mb-4 text-white">HEMS সম্পর্কে</h2>
+                <p class="text-gray-300 leading-relaxed">
+                    "Hasania Exam Management System" বা HEMS হলো একটি অত্যাধুনিক ওয়েব অ্যাপ্লিকেশন, যা বিশেষভাবে "জামিয়া হাসানিয়া কওমীয়া মাদরাসা ও এতিমখানা"-এর পরীক্ষার্থীদের হাজিরা ব্যবস্থাপনার জন্য তৈরি করা হয়েছে।
+                </p>
+                <p class="mt-4 text-gray-300 leading-relaxed">
+                     আমাদের মূল উদ্দেশ্য হলো সনাতন খাতা-কলমের পরিবর্তে ডিজিটাল পদ্ধতিতে হাজিরা গ্রহণ, সংরক্ষণ এবং বিশ্লেষণ করা। এর মাধ্যমে সময় সাশ্রয় হবে, তথ্যের নির্ভুলতা নিশ্চিত হবে এবং যেকোনো সময় দ্রুত রিপোর্ট তৈরি করা সম্ভব হবে। এই সিস্টেমটি মাদরাসার প্রশাসনিক কার্যক্রমকে আরও সহজ ও গতিশীল করতে সহায়তা করবে বলে আমরা আশাবাদী।
+                </p>
+            </div>
+        </div>
+
+    </main>
+    
+    <!-- Footer -->
+    <footer class="bg-gray-800 border-t border-gray-700 mt-auto py-5">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-gray-400">
+            <p class="text-sm">&copy; <span id="footer-year"></span> Hasania Exam Management System. All rights reserved.</p>
+            <p class="text-xs mt-1">"জামিয়া হাসানিয়া কওমীয়া মাদরাসা ও এতিমখানা"-এর জন্য একটি উদ্যোগ</p>
+        </div>
+    </footer>
+
+    <!-- Modals -->
+    <!-- Student Modal -->
+    <div id="student-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" id="close-student-modal">&times;</span>
+            <h3 id="student-modal-title" class="text-xl font-semibold text-white mb-4">নতুন ছাত্র</h3>
+            <form id="student-form">
+                <input type="hidden" id="student-id">
+                <div class="mb-4">
+                    <label for="student-name" class="block text-sm font-medium text-gray-300 mb-1">ছাত্রের নাম</label>
+                    <input type="text" id="student-name" class="w-full p-2 rounded-md" required>
+                </div>
+                <div class="mb-4">
+                    <label for="student-jamia" class="block text-sm font-medium text-gray-300 mb-1">জামাত</label>
+                    <select id="student-jamia" class="w-full p-2 rounded-md" required></select>
+                </div>
+                <div class="text-right">
+                    <button id="save-student-btn" type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">সংরক্ষণ করুন</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Kitab Modal -->
+    <div id="kitab-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" id="close-kitab-modal">&times;</span>
+            <h3 id="kitab-modal-title" class="text-xl font-semibold text-white mb-4">নতুন কিতাব</h3>
+            <form id="kitab-form">
+                <input type="hidden" id="kitab-id">
+                 <div class="mb-4">
+                    <label for="kitab-jamia-modal" class="block text-sm font-medium text-gray-300 mb-1">জামাত</label>
+                    <select id="kitab-jamia-modal" class="w-full p-2 rounded-md" required></select>
+                </div>
+                <div class="mb-4">
+                    <label for="kitab-name" class="block text-sm font-medium text-gray-300 mb-1">কিতাবের নাম</label>
+                    <input type="text" id="kitab-name" class="w-full p-2 rounded-md" required>
+                </div>
+                <div class="text-right">
+                    <button id="save-kitab-btn" type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">সংরক্ষণ করুন</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, setLogLevel, doc, collection, addDoc, getDocs, getDoc, setDoc, deleteDoc, query, where, writeBatch, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        
+        // Your web app's Firebase configuration
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            // Provide your firebase config here if not in canvas environment
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        setLogLevel('debug');
+        
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-hems-app';
+        let userId;
+
+        // --- AUTHENTICATION ---
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                console.log("User is signed in:", user.uid);
+                userId = user.uid;
+            } else {
+                console.log("User is signed out. Attempting to sign in.");
+                 try {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                         await signInWithCustomToken(auth, __initial_auth_token);
+                         console.log("Signed in with custom token.");
+                     } else {
+                         await signInAnonymously(auth);
+                         console.log("Signed in anonymously.");
+                     }
+                 } catch (error) {
+                     console.error("Authentication Error:", error);
+                     showToast("Authentication failed!", "error");
+                 }
+            }
+             if (auth.currentUser) {
+                userId = auth.currentUser.uid;
+                initializeAppLogic();
+             } else {
+                console.error("Could not get user ID.");
+             }
+        });
+
+        // --- GLOBAL STATE ---
+        let jamats = [];
+        let students = [];
+        let kitabs = [];
+        let attendanceChartInstance = null;
+
+        // --- HELPER FUNCTIONS ---
+        const showToast = (message, type = 'success') => {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toast-message');
+            toastMessage.textContent = message;
+            toast.className = `fixed top-5 right-5 text-white py-2 px-4 rounded-lg shadow-lg transform transition-transform duration-300 ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
+            toast.style.transform = 'translateX(0)';
+            setTimeout(() => {
+                toast.style.transform = 'translateX(100%)';
+            }, 3000);
+        };
+
+        const getAcademicYears = () => {
+            const currentGregorianYear = new Date().getFullYear();
+            const years = [];
+            for (let i = -2; i <= 5; i++) {
+                const year1 = 1446 + i;
+                const year2 = 1447 + i;
+                const gYear1 = currentGregorianYear + i;
+                const gYear2 = currentGregorianYear + i + 1;
+                years.push({
+                    id: `${year1}-${year2}`,
+                    text: `${year1}/${year2} হিজরী (${gYear1}-${gYear2} AD)`
+                });
+            }
+            return years;
+        };
+
+        const populateDropdown = (elementId, data, placeholder) => {
+            const select = document.getElementById(elementId);
+            if (!select) return;
+            const currentValue = select.value;
+            select.innerHTML = `<option value="">${placeholder}</option>`;
+            data.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item.id;
+                option.textContent = item.name || item.text;
+                select.appendChild(option);
+            });
+            if (data.find(d => d.id === currentValue)) {
+                select.value = currentValue;
+            }
+        };
+
+        const updateAllUIDropdowns = () => {
+             populateDropdown('attendance-jamia', jamats, 'জামাত নির্বাচন করুন');
+             populateDropdown('report-jamia', jamats, 'জামাত নির্বাচন করুন');
+             populateDropdown('student-filter-jamia', jamats, 'জামাত অনুযায়ী ফিল্টার করুন');
+             populateDropdown('student-jamia', jamats, 'জামাত নির্বাচন করুন');
+             populateDropdown('kitab-filter-jamia', jamats, 'জামাত নির্বাচন করুন');
+             populateDropdown('kitab-jamia-modal', jamats, 'জামাত নির্বাচন করুন');
+        }
+        
+        // --- PAGE/VIEW ROUTING ---
+        const pages = document.querySelectorAll('.page');
+        const navLinks = document.querySelectorAll('.nav-link');
+
+        const showPage = (pageId) => {
+            pages.forEach(page => {
+                page.classList.toggle('hidden', page.id !== pageId);
+            });
+            navLinks.forEach(link => {
+                link.classList.toggle('bg-gray-900', link.hash === `#${pageId}`);
+                link.classList.toggle('text-white', link.hash === `#${pageId}`);
+                link.classList.toggle('text-gray-300', link.hash !== `#${pageId}`);
+            });
+             if (pageId === 'attendance') {
+                window.location.hash = "home";
+                document.getElementById('attendance').scrollIntoView({ behavior: 'smooth' });
+             } else {
+                window.location.hash = pageId;
+             }
+        }
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const pageId = e.currentTarget.hash.substring(1);
+                showPage(pageId);
+                const mobileMenu = document.getElementById('mobile-menu');
+                if(!mobileMenu.classList.contains('hidden')) {
+                    mobileMenu.style.display = 'none';
+                }
+            });
+        });
+
+        document.getElementById('mobile-menu-button').addEventListener('click', () => {
+            const menu = document.getElementById('mobile-menu');
+            menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+        });
+        
+        const handleHashChange = () => {
+            const hash = window.location.hash.substring(1);
+            showPage(hash || 'home');
+        };
+
+        // --- FIRESTORE COLLECTIONS ---
+        const jamatsCol = collection(db, `artifacts/${appId}/public/data/jamats`);
+        const studentsCol = collection(db, `artifacts/${appId}/public/data/students`);
+        const kitabsCol = collection(db, `artifacts/${appId}/public/data/kitabs`);
+        const attendanceCol = collection(db, `artifacts/${appId}/public/data/attendance`);
+
+        // --- INITIALIZE APP LOGIC (PERFORMANCE OPTIMIZED) ---
+        async function initializeAppLogic() {
+            try {
+                await setupDefaultData();
+                
+                // Set up real-time listeners for all data.
+                // This ensures data is always consistent across the app.
+                onSnapshot(jamatsCol, snapshot => {
+                    jamats = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a,b) => a.order - b.order);
+                    updateAllUIDropdowns();
+                });
+                onSnapshot(studentsCol, snapshot => {
+                    students = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    renderStudentListForSettings(); // Re-render if on settings page
+                });
+                onSnapshot(kitabsCol, snapshot => {
+                    kitabs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    renderKitabListForSettings(); // Re-render if on settings page
+                    // Update attendance page kitab dropdown if jamat is selected
+                    const selectedJamia = document.getElementById('attendance-jamia').value;
+                    if (selectedJamia) {
+                         const jamiaKitabs = kitabs.filter(k => k.jamiaId === selectedJamia);
+                         populateDropdown('attendance-kitab', jamiaKitabs, 'কিতাব নির্বাচন করুন');
+                    }
+                });
+
+                const academicYears = getAcademicYears();
+                populateDropdown('attendance-year', academicYears, 'শিক্ষাবর্ষ নির্বাচন করুন');
+                populateDropdown('report-year', academicYears, 'শিক্ষাবর্ষ নির্বাচন করুন');
+                
+                document.getElementById('attendance-date').valueAsDate = new Date();
+
+                handleHashChange();
+                window.addEventListener('hashchange', handleHashChange);
+
+                document.getElementById('footer-year').textContent = new Date().getFullYear();
+                
+            } catch(error) {
+                console.error("Initialization Error:", error);
+                showToast("Data initialization failed!", "error");
+            }
+        }
+        
+        async function setupDefaultData() {
+            const jamatSnapshot = await getDocs(jamatsCol);
+            if (jamatSnapshot.empty) {
+                console.log("Setting up default Jamats and Kitabs...");
+                const jamatNames = [
+                    { name: "তাকমীল", order: 1, kitabCount: 10 }, { name: "মিশকাত", order: 2, kitabCount: 8 },
+                    { name: "জালালাইন", order: 3, kitabCount: 7 }, { name: "শরহে বেকায়া", order: 4, kitabCount: 7 },
+                    { name: "শরহে জামী", order: 5, kitabCount: 7 }, { name: "কাফিয়া", order: 6, kitabCount: 9 },
+                    { name: "হিদায়াতুন্নাহু", order: 7, kitabCount: 7 }, { name: "নাহবেমীর", order: 8, kitabCount: 7 },
+                    { name: "মিঝান", order: 9, kitabCount: 9 }, { name: "দহম", order: 10, kitabCount: 8 },
+                    { name: "ইয়াজ দহম", order: 11, kitabCount: 10 }
+                ];
+                for (const jamatData of jamatNames) {
+                    const jamatDocRef = doc(jamatsCol, jamatData.name.toLowerCase().replace(/\s/g, '-'));
+                    await setDoc(jamatDocRef, { name: jamatData.name, order: jamatData.order });
+                    for (let i = 1; i <= jamatData.kitabCount; i++) {
+                        await addDoc(kitabsCol, { jamiaId: jamatDocRef.id, name: `কিতাব নং ${i}` });
+                    }
+                }
+                showToast("Default data set up successfully.", "success");
+            }
+        }
+
+        // --- ATTENDANCE LOGIC ---
+        document.getElementById('attendance-jamia').addEventListener('change', (e) => {
+            const jamiaId = e.target.value;
+            const jamiaKitabs = kitabs.filter(k => k.jamiaId === jamiaId);
+            populateDropdown('attendance-kitab', jamiaKitabs, 'কিতাব নির্বাচন করুন');
+        });
+
+        document.getElementById('load-attendance-btn').addEventListener('click', () => {
+            const year = document.getElementById('attendance-year').value;
+            const jamiaId = document.getElementById('attendance-jamia').value;
+            const kitabId = document.getElementById('attendance-kitab').value;
+
+            if (!year || !jamiaId || !kitabId) {
+                showToast('অনুগ্রহ করে শিক্ষাবর্ষ, জামাত এবং কিতাব নির্বাচন করুন।', 'error');
+                return;
+            }
+
+            const filteredStudents = students.filter(s => s.jamiaId === jamiaId);
+            const attendanceList = document.getElementById('attendance-list');
+            attendanceList.innerHTML = '';
+
+            if (filteredStudents.length === 0) {
+                attendanceList.innerHTML = `<tr><td colspan="3" class="text-center py-4">এই জামাতে কোনো ছাত্র পাওয়া যায়নি।</td></tr>`;
+            } else {
+                 filteredStudents.sort((a,b) => a.name.localeCompare(b.name, 'bn')).forEach((student, index) => {
+                    const row = document.createElement('tr');
+                    row.className = 'border-b border-gray-700 hover:bg-gray-700';
+                    row.innerHTML = `
+                        <td class="py-3 px-4">${index + 1}</td>
+                        <td class="py-3 px-4">${student.name}</td>
+                        <td class="py-3 px-4">
+                            <div class="flex items-center justify-center space-x-6">
+                                <label class="attendance-radio">
+                                    <input type="radio" name="attendance-${student.id}" value="present" checked>
+                                    <span class="radio-circle"></span>
+                                    <span class="ml-2">উপস্থিত</span>
+                                </label>
+                                <label class="attendance-radio">
+                                    <input type="radio" name="attendance-${student.id}" value="absent">
+                                    <span class="radio-circle"></span>
+                                    <span class="ml-2">অনুপস্থিত</span>
+                                </label>
+                            </div>
+                        </td>
+                    `;
+                    attendanceList.appendChild(row);
+                });
+            }
+            document.getElementById('attendance-table-container').classList.remove('hidden');
+        });
+
+        document.getElementById('mark-all-present-btn').addEventListener('click', () => {
+            document.querySelectorAll('input[type="radio"][value="present"]').forEach(radio => {
+                radio.checked = true;
+            });
+        });
+
+        document.getElementById('save-attendance-btn').addEventListener('click', async () => {
+            const button = document.getElementById('save-attendance-btn');
+            const year = document.getElementById('attendance-year').value;
+            const exam = document.getElementById('attendance-exam').value;
+            const jamiaId = document.getElementById('attendance-jamia').value;
+            const kitabId = document.getElementById('attendance-kitab').value;
+            const date = document.getElementById('attendance-date').value;
+
+            if (!year || !exam || !jamiaId || !kitabId || !date) {
+                showToast('অনুগ্রহ করে সমস্ত তথ্য পূরণ করুন।', 'error');
+                return;
+            }
+            
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>সংরক্ষণ করা হচ্ছে...';
+
+            try {
+                // Use a batched write for performance
+                const batch = writeBatch(db);
+                const radios = document.querySelectorAll('input[type="radio"][name^="attendance-"]');
+                const attendanceRecords = {};
+
+                radios.forEach(radio => {
+                    if (radio.checked) {
+                        const studentId = radio.name.split('-')[1];
+                        attendanceRecords[studentId] = radio.value;
+                    }
+                });
+
+                for (const studentId in attendanceRecords) {
+                    const status = attendanceRecords[studentId];
+                    // Create a unique doc ID to prevent duplicates and allow upserts
+                    const docId = `${year}_${exam}_${jamiaId}_${kitabId}_${date}_${studentId}`;
+                    const docRef = doc(db, `artifacts/${appId}/public/data/attendance`, docId);
+                    batch.set(docRef, { academicYear: year, examName: exam, jamiaId: jamiaId, kitabId: kitabId, date: date, studentId: studentId, status: status });
+                }
+                
+                await batch.commit();
+
+                showToast('হাজিরা সফলভাবে সংরক্ষণ করা হয়েছে!', 'success');
+                document.getElementById('attendance-table-container').classList.add('hidden');
+            } catch (error) {
+                console.error("Error saving attendance: ", error);
+                showToast('হাজিরা সংরক্ষণে সমস্যা হয়েছে।', 'error');
+            } finally {
+                 button.disabled = false;
+                 button.innerHTML = '<i class="fas fa-save mr-2"></i>হাজিরা সংরক্ষণ করুন';
+            }
+        });
+
+        // --- SETTINGS: STUDENT MANAGEMENT ---
+        const studentModal = document.getElementById('student-modal');
+        document.getElementById('add-student-btn').addEventListener('click', () => {
+            document.getElementById('student-form').reset();
+            document.getElementById('student-id').value = '';
+            document.getElementById('student-modal-title').textContent = 'নতুন ছাত্র';
+            studentModal.style.display = 'block';
+        });
+        document.getElementById('close-student-modal').onclick = () => studentModal.style.display = 'none';
+
+        document.getElementById('student-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const button = document.getElementById('save-student-btn');
+            const id = document.getElementById('student-id').value;
+            const name = document.getElementById('student-name').value;
+            const jamiaId = document.getElementById('student-jamia').value;
+            
+            if (!name || !jamiaId) { showToast("দয়া করে সকল তথ্য পূরণ করুন।", "error"); return; }
+            
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>সংরক্ষণ হচ্ছে...';
+
+            try {
+                if (id) {
+                    await setDoc(doc(studentsCol, id), { name, jamiaId });
+                    showToast("ছাত্রের তথ্য আপডেট হয়েছে!", "success");
+                } else {
+                    await addDoc(studentsCol, { name, jamiaId });
+                    showToast("নতুন ছাত্র যোগ হয়েছে!", "success");
+                }
+                studentModal.style.display = 'none';
+            } catch (error) {
+                console.error("Error saving student:", error);
+                showToast("ছাত্রের তথ্য সংরক্ষণে সমস্যা হয়েছে।", "error");
+            } finally {
+                button.disabled = false;
+                button.innerHTML = 'সংরক্ষণ করুন';
+            }
+        });
+        
+        document.getElementById('student-filter-jamia').addEventListener('change', renderStudentListForSettings);
+        
+        function renderStudentListForSettings() {
+            // Only render if the settings page is active
+            if(document.getElementById('settings').classList.contains('hidden')) return;
+
+            const container = document.getElementById('student-list-settings');
+            const selectedJamia = document.getElementById('student-filter-jamia').value;
+            container.innerHTML = '';
+            
+            let filteredStudents = selectedJamia ? students.filter(s => s.jamiaId === selectedJamia) : students;
+            
+            filteredStudents.sort((a,b) => a.name.localeCompare(b.name, 'bn')).forEach(student => {
+                const div = document.createElement('div');
+                div.className = 'flex justify-between items-center p-2 bg-gray-700 rounded-md';
+                div.innerHTML = `
+                    <span>${student.name}</span>
+                    <div class="space-x-2">
+                        <button class="edit-student-btn text-blue-400 hover:text-blue-300" data-id="${student.id}"><i class="fas fa-edit"></i></button>
+                        <button class="delete-student-btn text-red-400 hover:text-red-300" data-id="${student.id}"><i class="fas fa-trash"></i></button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+            
+            container.querySelectorAll('.edit-student-btn').forEach(btn => btn.onclick = editStudent);
+            container.querySelectorAll('.delete-student-btn').forEach(btn => btn.onclick = deleteStudent);
+        }
+
+        function editStudent(e) {
+            const id = e.currentTarget.dataset.id;
+            const student = students.find(s => s.id === id);
+            if(student) {
+                document.getElementById('student-id').value = student.id;
+                document.getElementById('student-name').value = student.name;
+                document.getElementById('student-jamia').value = student.jamiaId;
+                document.getElementById('student-modal-title').textContent = 'ছাত্রের তথ্য সম্পাদনা করুন';
+                studentModal.style.display = 'block';
+            }
+        }
+
+        async function deleteStudent(e) {
+            const id = e.currentTarget.dataset.id;
+            if (confirm('আপনি কি নিশ্চিতভাবে এই ছাত্রকে মুছে ফেলতে চান?')) {
+                try {
+                    await deleteDoc(doc(studentsCol, id));
+                    showToast("ছাত্রকে সফলভাবে মুছে ফেলা হয়েছে।", "success");
+                } catch (error) {
+                    console.error("Error deleting student:", error);
+                    showToast("ছাত্রকে মুছতে সমস্যা হয়েছে।", "error");
+                }
+            }
+        }
+        
+        // --- SETTINGS: KITAB MANAGEMENT ---
+        const kitabModal = document.getElementById('kitab-modal');
+        document.getElementById('add-kitab-btn').addEventListener('click', () => {
+            const selectedJamia = document.getElementById('kitab-filter-jamia').value;
+            if (!selectedJamia) {
+                showToast('প্রথমে একটি জামাত নির্বাচন করুন।', 'error');
+                return;
+            }
+            document.getElementById('kitab-form').reset();
+            document.getElementById('kitab-id').value = '';
+            document.getElementById('kitab-jamia-modal').value = selectedJamia;
+            document.getElementById('kitab-jamia-modal').disabled = true;
+            document.getElementById('kitab-modal-title').textContent = 'নতুন কিতাব';
+            kitabModal.style.display = 'block';
+        });
+        document.getElementById('close-kitab-modal').onclick = () => kitabModal.style.display = 'none';
+
+        document.getElementById('kitab-form').addEventListener('submit', async (e) => {
+             e.preventDefault();
+            const button = document.getElementById('save-kitab-btn');
+            const id = document.getElementById('kitab-id').value;
+            const name = document.getElementById('kitab-name').value;
+            const jamiaId = document.getElementById('kitab-jamia-modal').value;
+             if (!name || !jamiaId) { showToast("দয়া করে সকল তথ্য পূরণ করুন।", "error"); return; }
+            
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>সংরক্ষণ হচ্ছে...';
+
+            try {
+                if(id) {
+                    await setDoc(doc(kitabsCol, id), { name, jamiaId });
+                    showToast("কিতাব আপডেট হয়েছে!", "success");
+                } else {
+                    await addDoc(kitabsCol, { name, jamiaId });
+                    showToast("নতুন কিতাব যোগ হয়েছে!", "success");
+                }
+                kitabModal.style.display = 'none';
+            } catch(error) {
+                console.error("Error saving kitab:", error);
+                showToast("কিতাব সংরক্ষণে সমস্যা হয়েছে।", "error");
+            } finally {
+                button.disabled = false;
+                button.innerHTML = 'সংরক্ষণ করুন';
+            }
+        });
+
+        document.getElementById('kitab-filter-jamia').addEventListener('change', renderKitabListForSettings);
+        
+        function renderKitabListForSettings() {
+             // Only render if the settings page is active
+            if(document.getElementById('settings').classList.contains('hidden')) return;
+
+            const container = document.getElementById('kitab-list-settings');
+            const selectedJamia = document.getElementById('kitab-filter-jamia').value;
+            container.innerHTML = '';
+             if (!selectedJamia) {
+                container.innerHTML = `<p class="text-center text-gray-400">কিতাব দেখতে একটি জামাত নির্বাচন করুন।</p>`;
+                return;
+            }
+            
+            const filteredKitabs = kitabs.filter(k => k.jamiaId === selectedJamia);
+            
+            filteredKitabs.sort((a,b) => a.name.localeCompare(b.name, 'bn')).forEach(kitab => {
+                 const div = document.createElement('div');
+                div.className = 'flex justify-between items-center p-2 bg-gray-700 rounded-md';
+                div.innerHTML = `
+                    <span>${kitab.name}</span>
+                    <div class="space-x-2">
+                        <button class="edit-kitab-btn text-blue-400 hover:text-blue-300" data-id="${kitab.id}"><i class="fas fa-edit"></i></button>
+                        <button class="delete-kitab-btn text-red-400 hover:text-red-300" data-id="${kitab.id}"><i class="fas fa-trash"></i></button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+            container.querySelectorAll('.edit-kitab-btn').forEach(btn => btn.onclick = editKitab);
+            container.querySelectorAll('.delete-kitab-btn').forEach(btn => btn.onclick = deleteKitab);
+        }
+
+        function editKitab(e) {
+            const id = e.currentTarget.dataset.id;
+            const kitab = kitabs.find(k => k.id === id);
+            if(kitab) {
+                document.getElementById('kitab-id').value = kitab.id;
+                document.getElementById('kitab-name').value = kitab.name;
+                document.getElementById('kitab-jamia-modal').value = kitab.jamiaId;
+                document.getElementById('kitab-jamia-modal').disabled = true;
+                document.getElementById('kitab-modal-title').textContent = 'কিতাবের নাম সম্পাদনা করুন';
+                kitabModal.style.display = 'block';
+            }
+        }
+        
+        async function deleteKitab(e) {
+            const id = e.currentTarget.dataset.id;
+             if (confirm('আপনি কি নিশ্চিতভাবে এই কিতাবটি মুছে ফেলতে চান?')) {
+                try {
+                    await deleteDoc(doc(kitabsCol, id));
+                    showToast("কিতাব সফলভাবে মুছে ফেলা হয়েছে।", "success");
+                } catch (error) {
+                    console.error("Error deleting kitab:", error);
+                    showToast("কিতাব মুছতে সমস্যা হয়েছে।", "error");
+                }
+            }
+        }
+        
+        // --- REPORTING LOGIC ---
+        let reportDataCache = [];
+
+        document.getElementById('generate-report-btn').addEventListener('click', async () => {
+            const button = document.getElementById('generate-report-btn');
+            const year = document.getElementById('report-year').value;
+            const exam = document.getElementById('report-exam').value;
+            const jamiaId = document.getElementById('report-jamia').value;
+
+            if (!year || !jamiaId) {
+                showToast('রিপোর্ট তৈরি করতে শিক্ষাবর্ষ এবং জামাত নির্বাচন করুন।', 'error');
+                return;
+            }
+
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>রিপোর্ট তৈরি হচ্ছে...';
+
+            try {
+                let q = query(attendanceCol, where("academicYear", "==", year), where("jamiaId", "==", jamiaId));
+                if (exam) {
+                    q = query(q, where("examName", "==", exam));
+                }
+
+                const attendanceSnapshot = await getDocs(q);
+                const rawAttendance = attendanceSnapshot.docs.map(doc => doc.data());
+                
+                const reportStudents = students.filter(s => s.jamiaId === jamiaId);
+                const reportKitabs = kitabs.filter(k => k.jamiaId === jamiaId);
+                
+                reportDataCache = {
+                    students: reportStudents,
+                    kitabs: reportKitabs,
+                    attendance: rawAttendance
+                };
+
+                displayReportPreview(reportDataCache);
+                
+            } catch (error) {
+                console.error("Error generating report: ", error);
+                showToast('রিপোর্ট তৈরিতে সমস্যা হয়েছে।', 'error');
+            } finally {
+                button.disabled = false;
+                button.innerHTML = '<i class="fas fa-cogs mr-2"></i>রিপোর্ট তৈরি করুন';
+            }
+        });
+        
+        function displayReportPreview({ students: reportStudents, kitabs: reportKitabs, attendance: rawAttendance }) {
+            const headContainer = document.getElementById('report-table-head');
+            const bodyContainer = document.getElementById('report-table-body');
+            headContainer.innerHTML = '';
+            bodyContainer.innerHTML = '';
+            
+            if (reportStudents.length === 0) {
+                 bodyContainer.innerHTML = `<tr><td colspan="${reportKitabs.length + 2}" class="text-center py-4">কোনো তথ্য পাওয়া যায়নি।</td></tr>`;
+                 document.getElementById('report-preview-container').classList.add('hidden');
+                 return;
+            }
+
+            let headRowHtml = `<tr><th class="py-3 px-2 text-left">নং</th><th class="py-3 px-2 text-left">নাম</th>`;
+            reportKitabs.forEach(kitab => {
+                headRowHtml += `<th class="py-3 px-2 text-center">${kitab.name}</th>`;
+            });
+            headRowHtml += '</tr>';
+            headContainer.innerHTML = headRowHtml;
+
+            let totalPresent = 0, totalAbsent = 0;
+            reportStudents.sort((a,b) => a.name.localeCompare(b.name, 'bn')).forEach((student, index) => {
+                let bodyRowHtml = `<tr class="border-b border-gray-700 hover:bg-gray-700"><td class="py-2 px-2">${index + 1}</td><td class="py-2 px-2">${student.name}</td>`;
+                reportKitabs.forEach(kitab => {
+                    const record = rawAttendance.find(r => r.studentId === student.id && r.kitabId === kitab.id);
+                    if (record) {
+                        if (record.status === 'present') {
+                            bodyRowHtml += `<td class="py-2 px-2 text-center text-green-400">✓</td>`;
+                            totalPresent++;
+                        } else {
+                            bodyRowHtml += `<td class="py-2 px-2 text-center text-red-400">✗</td>`;
+                            totalAbsent++;
+                        }
+                    } else {
+                        bodyRowHtml += `<td class="py-2 px-2 text-center text-gray-500">-</td>`;
+                    }
+                });
+                bodyRowHtml += '</tr>';
+                bodyContainer.innerHTML += bodyRowHtml;
+            });
+            
+            const chartCanvas = document.getElementById('attendance-chart');
+            if (attendanceChartInstance) {
+                attendanceChartInstance.destroy();
+            }
+            const totalAttendance = totalPresent + totalAbsent;
+            attendanceChartInstance = new Chart(chartCanvas, {
+                type: 'pie',
+                data: {
+                    labels: ['উপস্থিত', 'অনুপস্থিত'],
+                    datasets: [{
+                        label: 'হাজিরার হার',
+                        data: totalAttendance > 0 ? [totalPresent, totalAbsent] : [1, 0],
+                        backgroundColor: ['#10B981', '#EF4444'],
+                        borderColor: '#374151',
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { labels: { color: '#d1d5db', font: { family: "'Hind Siliguri'" } } }
+                    }
+                }
+            });
+
+            document.getElementById('report-preview-container').classList.remove('hidden');
+        }
+
+        // --- PDF & Excel Export ---
+        
+        // Base64 encoded data for SuleimanLipi.ttf font. This is necessary to embed the font in the PDF.
+        const solaimanLipiBase64 = "AAEAAAAPAIAAAwBwRkZUTWf+WqoAAFA4AAAAHE9TLzK23BbfAAABiAAAAGBjbWFwds8A+wAAAagAAAGyY3Z0IAAUABQAAAaYAAAAEmdhc3AAAAAQAAFLAAAAAIZ2x5ZgKbnUYAAAdYAAANPGhlYWQG45L/AAANjAAAADZoaGVhB+8E+gAADfQAAAAkaG10eCoAAAAAADfoAAAAGGxvY2EDewFMAAA4cAAAABhtYXhwARgAmQAADngAAAAgbmFtZSoCs8QAAA5AAAABdHBvc3SAamQkAAARZAAAANlwcmVwaGa2pmsAAAIsAAAABgABAAADUv9qAasEAP/i/8sAEwAAAAEAAgAAAAMAFAAEAAAAAgAAAAEAAQAAAEAALgAAAABAAAAAgAqALEAIAADAAgAAQAFACwALAAsAmEAYwB6APoAyADSANgA3QD4AQcBGwE1AAAABgAEAAAAAQAACAAPAAMAAQAgAAoAGgAFAAQAJAAmACgALAAwADgAQABIAFcAYQBqAHMAggCEAIwAnQCpAKwAsgC0ALYAuADIAOQA7AD6AQMBGgEcATMBRAE4AUsBZwFzAXYBigGPAZgBngGjAacBqwG1AbIBtQG5AcEBzQHQAdsB5AHoAekB7AHuAgsCDwIXAhkCHQIrAjECNQI6Aj0CPwJEAkoCVgJeAnECewKEAo8CogKrArACtgK+AsICywLPAtUC2QLfAuUC5wLoAwYDDwMUAxgDIQMoAy4DMgM2A0EDSwNTA1sDXQNhA2gDcwN8A4YDjQOUA5sDpgOoA6wDsAO4A74DxAPPBAgEFAQaBB4EIgQmBCwEPAQ+BEMESQRWBGMEbgR8BIUEiwSgBKMEqgSyBNUE4gTyBQEFGgUfBSIFJgUuBTIFPgVGBSsFOgVLBU4FXAVeBWAFYwVoBWsFawVtBXEFfgWIBY4FkAWYBaIFqAWwBcwFzQXSBdgF3gXwBfQGDgYWBh4GIwYnBikGOQY9BkUGSwZVBlwGYwZqBnQGgwaMBpQGoAaqBrAGsQbGBsoGzAbOBtAG2QbgBucG8gcGBxQHHgciBywHOQc9B0gHTgdWB1gHXgdoB2wHcAeGB5AHpAeyB74HwQfJB88H0gfWB+IH7gfwB/YH+Af+CAQIEghGCFYIWghoCIYImAieCKgIsgjCCMoI3AjgCOYI8gj6CQIJGgkgCSwJNAlCCVgJaAl8CYgJkAmgCcgJ4AogCjAKQApYCnAKoAqICqwKuAsACwwLJAtEC2QLgAugC9wMDAwsDEQMZAyEDKQMuAzIDQANGA1IAVwBaAF4AYQBmAGoAcgB2AHwAfgCAAIIAhACGAIgAjACSAJYAmACaAKAAqACqAKwAsgC0ALwA2ADgAPQA/AEIAQoBDgESARQBFgEcASABJAEoAS4BMgE0AToBQAJBAkUCRwJLAlECVQFbAWABbAFuAXMBdAF5AYABhQGIAY0BkAGaAaIBowGmAcABwgHHAcwBzgHSAdoB3AHhAecB6gHrAewB7QHyAfUB+QH8AgYCCgIMAhQCGAImAiwCMAIyAjYCUALaAuIDBgMMAw8DEAMZAxwDJAMqAzIDQQNIA0wDVgNgA20DgwOZA6ADrAOuA8IDzQQIBBIEGgQeBCIEJgQqBC4EPgRKBNoE+gUGBSoFTgVWBV4FYAVlBWsFcQV+BYcFjgWSBZcFpAWqBbQFugXMBc8F1AXgBfIGBgYWBh4GIgYmBioGNQY8BlMGWQZiBmoGcwZ+BoQGjgaUBqQGqwazBsUGygbQBtkG5QbyBwgHFAcaByIHLAc8B0cHTQdaB2EHbwd2B4EHhweJB5QHrge5B8IHxgfKB9MH1gfiB+4H8gf4CAIIEggWCBoIHAgkCDoIrwjCCI4IogiuCMoI2AjgCPYJCgkaCTgJSAlcCZgJtgnCCeIJ8goGCiIKPgo+CkAKRApQCloKcAqECpAKqAq0CsQLSAtUC2ALfAuUC6ALtAwIDBgMLAwwDEQMrAzMDOQNBA0gDSgNWA14DYANsA3IDhQOJA5MDmwOnA6sDsgO5A78DyQQUBCQELgQ9BEYETARbBGwEcQR+BJAEsgTQBOMFAQUaBRwFJgUuBTIFPgVGBSwFOgVPBVgFXAViBWQFaQVvBXIFfgWIBYsFkAWWBaIFqQWvBbUFyAXVBdwF9AX4BgYGCQYWBhgGGgYeBhsGHQYiBiMGJQYnBikGKwYvBjUGNwc+BUQFSAVAAlQCZwJ8ApECmgKkAsIC1QLkAugDEQMnAzsDQgNMA1gDbQONA5kDrgPIA88EDgQgBCwEQgRQBGAEbASIBKQEvAT0BRwFOAVkBYgFnAW4BdAGBAYAChQGGAYsBjAGSAZYBoAGhAakBrQHBAcUBzAHTAecB8AH3AgkCDgISAhkCHQIfAicCNQI5AjsCQgJIAkwCVAJaAmMCaAJyAnwCigKWApwCqAKuAsICzQLVAt4C6gL5AwoDDwMSAxoDIQMpAy4DMwM7A0MDSQNVBFgEWgRwBHgElgS2BPQFDgUeBSwFNAVEBUwFWQVeBWIFaQVuBXAFfgWGGBggGNQZCBkQGRgZIBk4GWgZkBmIGZAZoBnQGhgaIBoYGiA=";
+
+        function addBengaliFontToPDF(doc) {
+            // This function adds the SuleimanLipi font to the PDF document.
+            if (solaimanLipiBase64) {
+                try {
+                    doc.addFileToVFS('SuleimanLipi.ttf', solaimanLipiBase64);
+                    doc.addFont('SuleimanLipi.ttf', 'SuleimanLipi', 'normal');
+                    doc.setFont('SuleimanLipi');
+                } catch(e) {
+                    console.error("Could not add custom font to PDF:", e);
+                    showToast("PDF ফন্ট সেট করতে সমস্যা হয়েছে।", "error");
+                    doc.setFont('Helvetica'); // Fallback font
+                }
+            } else {
+                console.warn("SuleimanLipi Base64 font data is missing. PDF will use default font.");
+                doc.setFont('Helvetica');
+            }
+        }
+
+        const getReportHeaderInfo = () => {
+             const year = document.getElementById('report-year').options[document.getElementById('report-year').selectedIndex].text;
+             const exam = document.getElementById('report-exam').value || "সকল পরীক্ষা";
+             const jamia = document.getElementById('report-jamia').options[document.getElementById('report-jamia').selectedIndex].text;
+             return { year, exam, jamia };
+        };
+        
+        document.getElementById('download-pdf-btn').addEventListener('click', () => {
+             const { jsPDF } = window.jspdf;
+             const doc = new jsPDF();
+             const { year, exam, jamia } = getReportHeaderInfo();
+             
+             addBengaliFontToPDF(doc);
+             
+             doc.setFontSize(16);
+             doc.text("জামিয়া হাসানিয়া কওমীয়া মাদরাসা ও এতিমখানা", 105, 15, { align: 'center'});
+             doc.setFontSize(10);
+             doc.text("রঘুনাথপুর, শিঙ্গাশোলপুর, কালিয়া, নড়াইল", 105, 22, { align: 'center'});
+             
+             doc.setFontSize(12);
+             doc.text(`রিপোর্ট - শিক্ষাবর্ষ: ${year}`, 105, 32, { align: 'center'});
+             doc.text(`জামাত: ${jamia} | পরীক্ষা: ${exam}`, 105, 39, { align: 'center'});
+
+             const head = [[ 'নং', 'শিক্ষার্থীর নাম', ...reportDataCache.kitabs.map(k => k.name) ]];
+             const body = reportDataCache.students.map((student, index) => {
+                 const row = [index + 1, student.name];
+                 reportDataCache.kitabs.forEach(kitab => {
+                     const record = reportDataCache.attendance.find(r => r.studentId === student.id && r.kitabId === kitab.id);
+                     row.push(record ? (record.status === 'present' ? '✓' : '✗') : '-');
+                 });
+                 return row;
+             });
+
+             doc.autoTable({
+                 startY: 45,
+                 head: head,
+                 body: body,
+                 theme: 'grid',
+                 styles: { font: 'SuleimanLipi', cellPadding: 2, fontSize: 10 },
+                 headStyles: { fillColor: [31, 41, 55], fontStyle: 'bold' },
+                 didDrawPage: function(data) {
+                    doc.setFontSize(8);
+                    doc.text("Created by: Hasania Exam Management System", data.settings.margin.left, doc.internal.pageSize.height - 10);
+                 }
+             });
+
+             doc.save(`HEMS_Report_${jamia}_${year.split(' ')[0]}.pdf`);
+        });
+
+        document.getElementById('download-excel-btn').addEventListener('click', () => {
+            const { year, exam, jamia } = getReportHeaderInfo();
+            const header = [
+                "জামিয়া হাসানিয়া কওমীয়া মাদরাসা ও এতিমখানা",
+                "রঘুনাথপুর, শিঙ্গাশোলপুর, কালিয়া, নড়াইল",
+                `শিক্ষাবর্ষ: ${year}`,
+                `জামাত: ${jamia} | পরীক্ষা: ${exam}`
+            ];
+
+            const tableHeader = ["ক্রমিক নং", "শিক্ষার্থীর নাম", ...reportDataCache.kitabs.map(k => k.name)];
+            const tableBody = reportDataCache.students.map((student, index) => {
+                 const row = { "ক্রমিক নং": index + 1, "শিক্ষার্থীর নাম": student.name };
+                 reportDataCache.kitabs.forEach(kitab => {
+                     const record = reportDataCache.attendance.find(r => r.studentId === student.id && r.kitabId === kitab.id);
+                      row[kitab.name] = record ? (record.status === 'present' ? 'উপস্থিত (✓)' : 'অনুপস্থিত (✗)') : '-';
+                 });
+                 return row;
+            });
+            
+            const footer = ["Created by: Hasania Exam Management System"];
+
+            const ws = XLSX.utils.json_to_sheet([], {header: tableHeader});
+            XLSX.utils.sheet_add_aoa(ws, [header[0]], {origin: "A1"});
+            XLSX.utils.sheet_add_aoa(ws, [header[1]], {origin: "A2"});
+            XLSX.utils.sheet_add_aoa(ws, [header[2]], {origin: "A3"});
+            XLSX.utils.sheet_add_aoa(ws, [header[3]], {origin: "A4"});
+            XLSX.utils.sheet_add_json(ws, tableBody, {origin: "A6", skipHeader: false});
+            XLSX.utils.sheet_add_aoa(ws, [footer], {origin: -1});
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Hajira Report");
+            XLSX.writeFile(wb, `HEMS_Report_${jamia.replace(/\s/g, '_')}_${year.split(' ')[0]}.xlsx`);
+        });
+        
+    </script>
+</body>
+</html>
