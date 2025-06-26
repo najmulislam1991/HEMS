@@ -438,7 +438,9 @@
         let kitabs = [];
         let attendanceData = [];
         let attendanceChartInstance = null;
-        
+        let unsubscribeStudents = null; // To hold the unsubscribe function for student listener
+        let unsubscribeKitabs = null;   // To hold the unsubscribe function for kitab listener
+
         // --- HELPER FUNCTIONS ---
         const showToast = (message, type = 'success') => {
             const toast = document.getElementById('toast');
@@ -501,12 +503,13 @@
              } else {
                 window.location.hash = pageId;
              }
+             handlePageSpecificLogic(pageId);
         }
 
         navLinks.forEach(link => {
             link.addEventListener('click', (e) => {
                 e.preventDefault();
-                const pageId = e.target.hash.substring(1);
+                const pageId = e.currentTarget.hash.substring(1);
                 showPage(pageId);
                 // For mobile menu
                 const mobileMenu = document.getElementById('mobile-menu');
@@ -526,6 +529,40 @@
             showPage(hash || 'home');
         };
 
+        function handlePageSpecificLogic(pageId) {
+            // Detach old listeners when navigating away from the settings page
+            if (unsubscribeStudents) {
+                unsubscribeStudents();
+                unsubscribeStudents = null;
+            }
+            if (unsubscribeKitabs) {
+                unsubscribeKitabs();
+                unsubscribeKitabs = null;
+            }
+
+            // Attach real-time listeners only when on the settings page
+            if (pageId === 'settings') {
+                renderStudentListForSettings(); // Initial render with cached data
+                renderKitabListForSettings();   // Initial render with cached data
+                
+                // Attach new listeners
+                unsubscribeStudents = onSnapshot(studentsCol, snapshot => {
+                    students = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    renderStudentListForSettings();
+                });
+                unsubscribeKitabs = onSnapshot(kitabsCol, snapshot => {
+                    kitabs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    renderKitabListForSettings();
+                    // Also update kitab dropdowns on other pages silently
+                    const jamiaId = document.getElementById('attendance-jamia').value;
+                    if(jamiaId) {
+                       const jamiaKitabs = kitabs.filter(k => k.jamiaId === jamiaId);
+                       populateDropdown('attendance-kitab', jamiaKitabs, 'কিতাব নির্বাচন করুন');
+                    }
+                });
+            }
+        }
+
 
         // --- FIRESTORE FUNCTIONS ---
         const jamatsCol = collection(db, `artifacts/${appId}/public/data/jamats`);
@@ -533,31 +570,30 @@
         const kitabsCol = collection(db, `artifacts/${appId}/public/data/kitabs`);
         const attendanceCol = collection(db, `artifacts/${appId}/public/data/attendance`);
 
-        // --- INITIALIZE APP LOGIC ---
+        // --- INITIALIZE APP LOGIC (PERFORMANCE OPTIMIZED) ---
         async function initializeAppLogic() {
             try {
                 await setupDefaultData();
                 
-                // Fetch initial data
-                onSnapshot(jamatsCol, snapshot => {
-                    jamats = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a,b) => a.order - b.order);
-                    populateDropdown('attendance-jamia', jamats, 'জামাত নির্বাচন করুন');
-                    populateDropdown('report-jamia', jamats, 'জামাত নির্বাচন করুন');
-                    populateDropdown('student-filter-jamia', jamats, 'জামাত অনুযায়ী ফিল্টার করুন');
-                    populateDropdown('student-jamia', jamats, 'জামাত নির্বাচন করুন');
-                    populateDropdown('kitab-filter-jamia', jamats, 'জামাত নির্বাচন করুন');
-                    populateDropdown('kitab-jamia-modal', jamats, 'জামাত নির্বাচন করুন');
-                });
+                // Fetch initial data once using getDocs for faster load time
+                const [jamatSnapshot, studentSnapshot, kitabSnapshot] = await Promise.all([
+                    getDocs(jamatsCol),
+                    getDocs(studentsCol),
+                    getDocs(kitabsCol)
+                ]);
 
-                onSnapshot(studentsCol, snapshot => {
-                    students = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    renderStudentListForSettings();
-                });
+                // Populate global state with fetched data
+                jamats = jamatSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a,b) => a.order - b.order);
+                students = studentSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                kitabs = kitabSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 
-                onSnapshot(kitabsCol, snapshot => {
-                    kitabs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    renderKitabListForSettings();
-                });
+                // Populate all dropdowns with the initial data
+                populateDropdown('attendance-jamia', jamats, 'জামাত নির্বাচন করুন');
+                populateDropdown('report-jamia', jamats, 'জামাত নির্বাচন করুন');
+                populateDropdown('student-filter-jamia', jamats, 'জামাত অনুযায়ী ফিল্টার করুন');
+                populateDropdown('student-jamia', jamats, 'জামাত নির্বাচন করুন');
+                populateDropdown('kitab-filter-jamia', jamats, 'জামাত নির্বাচন করুন');
+                populateDropdown('kitab-jamia-modal', jamats, 'জামাত নির্বাচন করুন');
 
                 const academicYears = getAcademicYears();
                 populateDropdown('attendance-year', academicYears, 'শিক্ষাবর্ষ নির্বাচন করুন');
@@ -579,37 +615,22 @@
         }
         
         async function setupDefaultData() {
-            const jamatNames = [
-                { name: "তাকমীল", order: 1, kitabCount: 10 },
-                { name: "মিশকাত", order: 2, kitabCount: 8 },
-                { name: "জালালাইন", order: 3, kitabCount: 7 },
-                { name: "শরহে বেকায়া", order: 4, kitabCount: 7 },
-                { name: "শরহে জামী", order: 5, kitabCount: 7 },
-                { name: "কাফিয়া", order: 6, kitabCount: 9 },
-                { name: "হিদায়াতুন্নাহু", order: 7, kitabCount: 7 },
-                { name: "নাহবেমীর", order: 8, kitabCount: 7 },
-                { name: "মিঝান", order: 9, kitabCount: 9 },
-                { name: "দহম", order: 10, kitabCount: 8 },
-                { name: "ইয়াজ দহম", order: 11, kitabCount: 10 }
-            ];
-
             const jamatSnapshot = await getDocs(jamatsCol);
             if (jamatSnapshot.empty) {
                 console.log("Setting up default Jamats and Kitabs...");
+                const jamatNames = [
+                    { name: "তাকমীল", order: 1, kitabCount: 10 }, { name: "মিশকাত", order: 2, kitabCount: 8 },
+                    { name: "জালালাইন", order: 3, kitabCount: 7 }, { name: "শরহে বেকায়া", order: 4, kitabCount: 7 },
+                    { name: "শরহে জামী", order: 5, kitabCount: 7 }, { name: "কাফিয়া", order: 6, kitabCount: 9 },
+                    { name: "হিদায়াতুন্নাহু", order: 7, kitabCount: 7 }, { name: "নাহবেমীর", order: 8, kitabCount: 7 },
+                    { name: "মিঝান", order: 9, kitabCount: 9 }, { name: "দহম", order: 10, kitabCount: 8 },
+                    { name: "ইয়াজ দহম", order: 11, kitabCount: 10 }
+                ];
                 for (const jamatData of jamatNames) {
                     const jamatDocRef = doc(jamatsCol, jamatData.name.toLowerCase().replace(/\s/g, '-'));
                     await setDoc(jamatDocRef, { name: jamatData.name, order: jamatData.order });
-                    
-                    const kitabQuery = query(kitabsCol, where("jamiaId", "==", jamatDocRef.id));
-                    const kitabSnapshot = await getDocs(kitabQuery);
-
-                    if (kitabSnapshot.empty) {
-                        for (let i = 1; i <= jamatData.kitabCount; i++) {
-                            await addDoc(kitabsCol, {
-                                jamiaId: jamatDocRef.id,
-                                name: `কিতাব নং ${i}`
-                            });
-                        }
+                    for (let i = 1; i <= jamatData.kitabCount; i++) {
+                        await addDoc(kitabsCol, { jamiaId: jamatDocRef.id, name: `কিতাব নং ${i}` });
                     }
                 }
                 showToast("Default data set up successfully.", "success");
@@ -698,39 +719,18 @@
 
                 for (const studentId in attendanceRecords) {
                     const status = attendanceRecords[studentId];
-                     // Check if a record already exists for this combination
-                    const q = query(attendanceCol, 
-                        where("academicYear", "==", year),
-                        where("examName", "==", exam),
-                        where("jamiaId", "==", jamiaId),
-                        where("kitabId", "==", kitabId),
-                        where("date", "==", date),
-                        where("studentId", "==", studentId)
+                     const q = query(attendanceCol, 
+                        where("academicYear", "==", year), where("examName", "==", exam),
+                        where("jamiaId", "==", jamiaId), where("kitabId", "==", kitabId),
+                        where("date", "==", date), where("studentId", "==", studentId)
                     );
                     const existingDocs = await getDocs(q);
 
                     if (existingDocs.empty) {
-                        await addDoc(attendanceCol, {
-                            academicYear: year,
-                            examName: exam,
-                            jamiaId: jamiaId,
-                            kitabId: kitabId,
-                            date: date,
-                            studentId: studentId,
-                            status: status
-                        });
+                        await addDoc(attendanceCol, { academicYear: year, examName: exam, jamiaId: jamiaId, kitabId: kitabId, date: date, studentId: studentId, status: status });
                     } else {
-                        // Update the existing document
                         const docId = existingDocs.docs[0].id;
-                        await setDoc(doc(db, `artifacts/${appId}/public/data/attendance`, docId), {
-                            academicYear: year,
-                            examName: exam,
-                            jamiaId: jamiaId,
-                            kitabId: kitabId,
-                            date: date,
-                            studentId: studentId,
-                            status: status
-                        });
+                        await setDoc(doc(db, `artifacts/${appId}/public/data/attendance`, docId), { academicYear: year, examName: exam, jamiaId: jamiaId, kitabId: kitabId, date: date, studentId: studentId, status: status });
                     }
                 }
                 showToast('হাজিরা সফলভাবে সংরক্ষণ করা হয়েছে!', 'success');
@@ -759,16 +759,13 @@
             const name = document.getElementById('student-name').value;
             const jamiaId = document.getElementById('student-jamia').value;
             
-            if (!name || !jamiaId) {
-                showToast("Please fill all fields.", "error");
-                return;
-            }
+            if (!name || !jamiaId) { showToast("Please fill all fields.", "error"); return; }
 
             try {
-                if (id) { // Update existing student
+                if (id) {
                     await setDoc(doc(studentsCol, id), { name, jamiaId });
                     showToast("Student updated successfully!", "success");
-                } else { // Add new student
+                } else {
                     await addDoc(studentsCol, { name, jamiaId });
                     showToast("Student added successfully!", "success");
                 }
@@ -801,7 +798,6 @@
                 container.appendChild(div);
             });
             
-            // Add event listeners for edit/delete buttons
             container.querySelectorAll('.edit-student-btn').forEach(btn => btn.onclick = editStudent);
             container.querySelectorAll('.delete-student-btn').forEach(btn => btn.onclick = deleteStudent);
         }
@@ -1165,4 +1161,4 @@
         
     </script>
 </body>
-</html>
+</ht
