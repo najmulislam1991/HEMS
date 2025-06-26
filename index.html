@@ -107,11 +107,6 @@
 </head>
 <body class="bg-gray-900 text-gray-200">
 
-    <!-- Loader -->
-    <div id="loader" class="fixed inset-0 bg-black bg-opacity-70 z-[101] flex items-center justify-center">
-        <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500"></div>
-    </div>
-
     <!-- Toast Notification -->
     <div id="toast" class="fixed top-5 right-5 bg-green-500 text-white py-2 px-4 rounded-lg shadow-lg transform translate-x-full transition-transform duration-300">
         <p id="toast-message"></p>
@@ -178,8 +173,8 @@
                         <option value="২য় সাময়িক পরীক্ষা">২য় সাময়িক পরীক্ষা</option>
                         <option value="বার্ষিক পরীক্ষা">বার্ষিক পরীক্ষা</option>
                     </select>
-                    <select id="attendance-jamia" class="w-full p-2 rounded-md"></select>
-                    <select id="attendance-kitab" class="w-full p-2 rounded-md"></select>
+                    <select id="attendance-jamia" class="w-full p-2 rounded-md"><option>লোড হচ্ছে...</option></select>
+                    <select id="attendance-kitab" class="w-full p-2 rounded-md"><option>জামাত নির্বাচন করুন</option></select>
                     <input type="date" id="attendance-date" class="w-full p-2 rounded-md">
                 </div>
                 <div class="text-center mb-6">
@@ -404,7 +399,6 @@
 
         // --- AUTHENTICATION ---
         onAuthStateChanged(auth, async (user) => {
-            document.getElementById('loader').style.display = 'flex';
             if (user) {
                 console.log("User is signed in:", user.uid);
                 userId = user.uid;
@@ -428,7 +422,6 @@
                 initializeAppLogic();
              } else {
                 console.error("Could not get user ID.");
-                document.getElementById('loader').style.display = 'none';
              }
         });
 
@@ -609,8 +602,6 @@
             } catch(error) {
                 console.error("Initialization Error:", error);
                 showToast("Data initialization failed!", "error");
-            } finally {
-                document.getElementById('loader').style.display = 'none';
             }
         }
         
@@ -695,6 +686,7 @@
         });
 
         document.getElementById('save-attendance-btn').addEventListener('click', async () => {
+            const button = document.getElementById('save-attendance-btn');
             const year = document.getElementById('attendance-year').value;
             const exam = document.getElementById('attendance-exam').value;
             const jamiaId = document.getElementById('attendance-jamia').value;
@@ -706,7 +698,9 @@
                 return;
             }
             
-            document.getElementById('loader').style.display = 'flex';
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>সংরক্ষণ করা হচ্ছে...';
+
             try {
                 const radios = document.querySelectorAll('input[type="radio"][name^="attendance-"]');
                 const attendanceRecords = {};
@@ -739,7 +733,8 @@
                 console.error("Error saving attendance: ", error);
                 showToast('হাজিরা সংরক্ষণে সমস্যা হয়েছে।', 'error');
             } finally {
-                 document.getElementById('loader').style.display = 'none';
+                 button.disabled = false;
+                 button.innerHTML = '<i class="fas fa-save mr-2"></i>হাজিরা সংরক্ষণ করুন';
             }
         });
 
@@ -925,6 +920,7 @@
         let reportDataCache = [];
 
         document.getElementById('generate-report-btn').addEventListener('click', async () => {
+            const button = document.getElementById('generate-report-btn');
             const year = document.getElementById('report-year').value;
             const exam = document.getElementById('report-exam').value;
             const jamiaId = document.getElementById('report-jamia').value;
@@ -934,7 +930,9 @@
                 return;
             }
 
-            document.getElementById('loader').style.display = 'flex';
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>রিপোর্ট তৈরি হচ্ছে...';
+
             try {
                 let q = query(attendanceCol, where("academicYear", "==", year), where("jamiaId", "==", jamiaId));
                 if (exam) {
@@ -959,7 +957,8 @@
                 console.error("Error generating report: ", error);
                 showToast('রিপোর্ট তৈরিতে সমস্যা হয়েছে।', 'error');
             } finally {
-                document.getElementById('loader').style.display = 'none';
+                button.disabled = false;
+                button.innerHTML = '<i class="fas fa-cogs mr-2"></i>রিপোর্ট তৈরি করুন';
             }
         });
         
@@ -1161,4 +1160,4 @@
         
     </script>
 </body>
-</ht
+</html>
