@@ -103,6 +103,10 @@
         .attendance-radio input:checked + .radio-circle::after {
             content: ''; width: 10px; height: 10px; border-radius: 50%; background-color: #2563eb;
         }
+        button:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-200">
@@ -120,7 +124,7 @@
                     <span class="font-bold text-xl text-white">Hasania Exam Management System</span>
                 </div>
                 <div class="hidden md:block">
-                    <div class="ml-10 flex items-center space-x-4">
+                    <div class="ml-10 flex items-baseline space-x-4">
                         <a href="#home" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-white bg-gray-900 flex items-center"><i class="fas fa-home mr-2"></i>হোম</a>
                         <a href="#attendance" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white flex items-center"><i class="fas fa-user-check mr-2"></i>পরীক্ষার্থী হাজিরা</a>
                         <a href="#reports" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white flex items-center"><i class="fas fa-download mr-2"></i>রিপোর্ট ডাউনলোড</a>
@@ -347,7 +351,7 @@
                     <select id="student-jamia" class="w-full p-2 rounded-md" required></select>
                 </div>
                 <div class="text-right">
-                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">সংরক্ষণ করুন</button>
+                    <button id="save-student-btn" type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">সংরক্ষণ করুন</button>
                 </div>
             </form>
         </div>
@@ -369,7 +373,7 @@
                     <input type="text" id="kitab-name" class="w-full p-2 rounded-md" required>
                 </div>
                 <div class="text-right">
-                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">সংরক্ষণ করুন</button>
+                    <button id="save-kitab-btn" type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">সংরক্ষণ করুন</button>
                 </div>
             </form>
         </div>
@@ -380,7 +384,7 @@
     <script type="module">
         // Import the functions you need from the SDKs you need
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, setLogLevel, doc, collection, addDoc, getDocs, getDoc, setDoc, deleteDoc, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, setLogLevel, doc, collection, addDoc, getDocs, getDoc, setDoc, deleteDoc, query, where, writeBatch, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         
         // Your web app's Firebase configuration
@@ -429,10 +433,7 @@
         let jamats = [];
         let students = [];
         let kitabs = [];
-        let attendanceData = [];
         let attendanceChartInstance = null;
-        let unsubscribeStudents = null; // To hold the unsubscribe function for student listener
-        let unsubscribeKitabs = null;   // To hold the unsubscribe function for kitab listener
 
         // --- HELPER FUNCTIONS ---
         const showToast = (message, type = 'success') => {
@@ -449,9 +450,6 @@
         const getAcademicYears = () => {
             const currentGregorianYear = new Date().getFullYear();
             const years = [];
-            // Assuming Hijri year is roughly Gregorian year - 579
-            // This is an approximation. For accurate conversion, a library is needed.
-            // For now, providing a fixed list based on user's example.
             for (let i = -2; i <= 5; i++) {
                 const year1 = 1446 + i;
                 const year2 = 1447 + i;
@@ -468,6 +466,7 @@
         const populateDropdown = (elementId, data, placeholder) => {
             const select = document.getElementById(elementId);
             if (!select) return;
+            const currentValue = select.value;
             select.innerHTML = `<option value="">${placeholder}</option>`;
             data.forEach(item => {
                 const option = document.createElement('option');
@@ -475,7 +474,19 @@
                 option.textContent = item.name || item.text;
                 select.appendChild(option);
             });
+            if (data.find(d => d.id === currentValue)) {
+                select.value = currentValue;
+            }
         };
+
+        const updateAllUIDropdowns = () => {
+             populateDropdown('attendance-jamia', jamats, 'জামাত নির্বাচন করুন');
+             populateDropdown('report-jamia', jamats, 'জামাত নির্বাচন করুন');
+             populateDropdown('student-filter-jamia', jamats, 'জামাত অনুযায়ী ফিল্টার করুন');
+             populateDropdown('student-jamia', jamats, 'জামাত নির্বাচন করুন');
+             populateDropdown('kitab-filter-jamia', jamats, 'জামাত নির্বাচন করুন');
+             populateDropdown('kitab-jamia-modal', jamats, 'জামাত নির্বাচন করুন');
+        }
         
         // --- PAGE/VIEW ROUTING ---
         const pages = document.querySelectorAll('.page');
@@ -496,7 +507,6 @@
              } else {
                 window.location.hash = pageId;
              }
-             handlePageSpecificLogic(pageId);
         }
 
         navLinks.forEach(link => {
@@ -504,7 +514,6 @@
                 e.preventDefault();
                 const pageId = e.currentTarget.hash.substring(1);
                 showPage(pageId);
-                // For mobile menu
                 const mobileMenu = document.getElementById('mobile-menu');
                 if(!mobileMenu.classList.contains('hidden')) {
                     mobileMenu.style.display = 'none';
@@ -522,42 +531,7 @@
             showPage(hash || 'home');
         };
 
-        function handlePageSpecificLogic(pageId) {
-            // Detach old listeners when navigating away from the settings page
-            if (unsubscribeStudents) {
-                unsubscribeStudents();
-                unsubscribeStudents = null;
-            }
-            if (unsubscribeKitabs) {
-                unsubscribeKitabs();
-                unsubscribeKitabs = null;
-            }
-
-            // Attach real-time listeners only when on the settings page
-            if (pageId === 'settings') {
-                renderStudentListForSettings(); // Initial render with cached data
-                renderKitabListForSettings();   // Initial render with cached data
-                
-                // Attach new listeners
-                unsubscribeStudents = onSnapshot(studentsCol, snapshot => {
-                    students = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    renderStudentListForSettings();
-                });
-                unsubscribeKitabs = onSnapshot(kitabsCol, snapshot => {
-                    kitabs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    renderKitabListForSettings();
-                    // Also update kitab dropdowns on other pages silently
-                    const jamiaId = document.getElementById('attendance-jamia').value;
-                    if(jamiaId) {
-                       const jamiaKitabs = kitabs.filter(k => k.jamiaId === jamiaId);
-                       populateDropdown('attendance-kitab', jamiaKitabs, 'কিতাব নির্বাচন করুন');
-                    }
-                });
-            }
-        }
-
-
-        // --- FIRESTORE FUNCTIONS ---
+        // --- FIRESTORE COLLECTIONS ---
         const jamatsCol = collection(db, `artifacts/${appId}/public/data/jamats`);
         const studentsCol = collection(db, `artifacts/${appId}/public/data/students`);
         const kitabsCol = collection(db, `artifacts/${appId}/public/data/kitabs`);
@@ -568,25 +542,26 @@
             try {
                 await setupDefaultData();
                 
-                // Fetch initial data once using getDocs for faster load time
-                const [jamatSnapshot, studentSnapshot, kitabSnapshot] = await Promise.all([
-                    getDocs(jamatsCol),
-                    getDocs(studentsCol),
-                    getDocs(kitabsCol)
-                ]);
-
-                // Populate global state with fetched data
-                jamats = jamatSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a,b) => a.order - b.order);
-                students = studentSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                kitabs = kitabSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                
-                // Populate all dropdowns with the initial data
-                populateDropdown('attendance-jamia', jamats, 'জামাত নির্বাচন করুন');
-                populateDropdown('report-jamia', jamats, 'জামাত নির্বাচন করুন');
-                populateDropdown('student-filter-jamia', jamats, 'জামাত অনুযায়ী ফিল্টার করুন');
-                populateDropdown('student-jamia', jamats, 'জামাত নির্বাচন করুন');
-                populateDropdown('kitab-filter-jamia', jamats, 'জামাত নির্বাচন করুন');
-                populateDropdown('kitab-jamia-modal', jamats, 'জামাত নির্বাচন করুন');
+                // Set up real-time listeners for all data.
+                // This ensures data is always consistent across the app.
+                onSnapshot(jamatsCol, snapshot => {
+                    jamats = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a,b) => a.order - b.order);
+                    updateAllUIDropdowns();
+                });
+                onSnapshot(studentsCol, snapshot => {
+                    students = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    renderStudentListForSettings(); // Re-render if on settings page
+                });
+                onSnapshot(kitabsCol, snapshot => {
+                    kitabs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    renderKitabListForSettings(); // Re-render if on settings page
+                    // Update attendance page kitab dropdown if jamat is selected
+                    const selectedJamia = document.getElementById('attendance-jamia').value;
+                    if (selectedJamia) {
+                         const jamiaKitabs = kitabs.filter(k => k.jamiaId === selectedJamia);
+                         populateDropdown('attendance-kitab', jamiaKitabs, 'কিতাব নির্বাচন করুন');
+                    }
+                });
 
                 const academicYears = getAcademicYears();
                 populateDropdown('attendance-year', academicYears, 'শিক্ষাবর্ষ নির্বাচন করুন');
@@ -702,8 +677,11 @@
             button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>সংরক্ষণ করা হচ্ছে...';
 
             try {
+                // Use a batched write for performance
+                const batch = writeBatch(db);
                 const radios = document.querySelectorAll('input[type="radio"][name^="attendance-"]');
                 const attendanceRecords = {};
+
                 radios.forEach(radio => {
                     if (radio.checked) {
                         const studentId = radio.name.split('-')[1];
@@ -713,20 +691,14 @@
 
                 for (const studentId in attendanceRecords) {
                     const status = attendanceRecords[studentId];
-                     const q = query(attendanceCol, 
-                        where("academicYear", "==", year), where("examName", "==", exam),
-                        where("jamiaId", "==", jamiaId), where("kitabId", "==", kitabId),
-                        where("date", "==", date), where("studentId", "==", studentId)
-                    );
-                    const existingDocs = await getDocs(q);
-
-                    if (existingDocs.empty) {
-                        await addDoc(attendanceCol, { academicYear: year, examName: exam, jamiaId: jamiaId, kitabId: kitabId, date: date, studentId: studentId, status: status });
-                    } else {
-                        const docId = existingDocs.docs[0].id;
-                        await setDoc(doc(db, `artifacts/${appId}/public/data/attendance`, docId), { academicYear: year, examName: exam, jamiaId: jamiaId, kitabId: kitabId, date: date, studentId: studentId, status: status });
-                    }
+                    // Create a unique doc ID to prevent duplicates and allow upserts
+                    const docId = `${year}_${exam}_${jamiaId}_${kitabId}_${date}_${studentId}`;
+                    const docRef = doc(db, `artifacts/${appId}/public/data/attendance`, docId);
+                    batch.set(docRef, { academicYear: year, examName: exam, jamiaId: jamiaId, kitabId: kitabId, date: date, studentId: studentId, status: status });
                 }
+                
+                await batch.commit();
+
                 showToast('হাজিরা সফলভাবে সংরক্ষণ করা হয়েছে!', 'success');
                 document.getElementById('attendance-table-container').classList.add('hidden');
             } catch (error) {
@@ -750,30 +722,40 @@
 
         document.getElementById('student-form').addEventListener('submit', async (e) => {
             e.preventDefault();
+            const button = document.getElementById('save-student-btn');
             const id = document.getElementById('student-id').value;
             const name = document.getElementById('student-name').value;
             const jamiaId = document.getElementById('student-jamia').value;
             
-            if (!name || !jamiaId) { showToast("Please fill all fields.", "error"); return; }
+            if (!name || !jamiaId) { showToast("দয়া করে সকল তথ্য পূরণ করুন।", "error"); return; }
+            
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>সংরক্ষণ হচ্ছে...';
 
             try {
                 if (id) {
                     await setDoc(doc(studentsCol, id), { name, jamiaId });
-                    showToast("Student updated successfully!", "success");
+                    showToast("ছাত্রের তথ্য আপডেট হয়েছে!", "success");
                 } else {
                     await addDoc(studentsCol, { name, jamiaId });
-                    showToast("Student added successfully!", "success");
+                    showToast("নতুন ছাত্র যোগ হয়েছে!", "success");
                 }
                 studentModal.style.display = 'none';
             } catch (error) {
                 console.error("Error saving student:", error);
-                showToast("Failed to save student.", "error");
+                showToast("ছাত্রের তথ্য সংরক্ষণে সমস্যা হয়েছে।", "error");
+            } finally {
+                button.disabled = false;
+                button.innerHTML = 'সংরক্ষণ করুন';
             }
         });
         
         document.getElementById('student-filter-jamia').addEventListener('change', renderStudentListForSettings);
         
         function renderStudentListForSettings() {
+            // Only render if the settings page is active
+            if(document.getElementById('settings').classList.contains('hidden')) return;
+
             const container = document.getElementById('student-list-settings');
             const selectedJamia = document.getElementById('student-filter-jamia').value;
             container.innerHTML = '';
@@ -814,10 +796,10 @@
             if (confirm('আপনি কি নিশ্চিতভাবে এই ছাত্রকে মুছে ফেলতে চান?')) {
                 try {
                     await deleteDoc(doc(studentsCol, id));
-                    showToast("Student deleted successfully.", "success");
+                    showToast("ছাত্রকে সফলভাবে মুছে ফেলা হয়েছে।", "success");
                 } catch (error) {
                     console.error("Error deleting student:", error);
-                    showToast("Failed to delete student.", "error");
+                    showToast("ছাত্রকে মুছতে সমস্যা হয়েছে।", "error");
                 }
             }
         }
@@ -841,29 +823,39 @@
 
         document.getElementById('kitab-form').addEventListener('submit', async (e) => {
              e.preventDefault();
+            const button = document.getElementById('save-kitab-btn');
             const id = document.getElementById('kitab-id').value;
             const name = document.getElementById('kitab-name').value;
             const jamiaId = document.getElementById('kitab-jamia-modal').value;
-             if (!name || !jamiaId) { showToast("Please fill all fields.", "error"); return; }
+             if (!name || !jamiaId) { showToast("দয়া করে সকল তথ্য পূরণ করুন।", "error"); return; }
             
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>সংরক্ষণ হচ্ছে...';
+
             try {
                 if(id) {
                     await setDoc(doc(kitabsCol, id), { name, jamiaId });
-                    showToast("Kitab updated successfully!", "success");
+                    showToast("কিতাব আপডেট হয়েছে!", "success");
                 } else {
                     await addDoc(kitabsCol, { name, jamiaId });
-                    showToast("Kitab added successfully!", "success");
+                    showToast("নতুন কিতাব যোগ হয়েছে!", "success");
                 }
                 kitabModal.style.display = 'none';
             } catch(error) {
                 console.error("Error saving kitab:", error);
-                showToast("Failed to save kitab.", "error");
+                showToast("কিতাব সংরক্ষণে সমস্যা হয়েছে।", "error");
+            } finally {
+                button.disabled = false;
+                button.innerHTML = 'সংরক্ষণ করুন';
             }
         });
 
         document.getElementById('kitab-filter-jamia').addEventListener('change', renderKitabListForSettings);
         
         function renderKitabListForSettings() {
+             // Only render if the settings page is active
+            if(document.getElementById('settings').classList.contains('hidden')) return;
+
             const container = document.getElementById('kitab-list-settings');
             const selectedJamia = document.getElementById('kitab-filter-jamia').value;
             container.innerHTML = '';
@@ -908,10 +900,10 @@
              if (confirm('আপনি কি নিশ্চিতভাবে এই কিতাবটি মুছে ফেলতে চান?')) {
                 try {
                     await deleteDoc(doc(kitabsCol, id));
-                    showToast("Kitab deleted successfully.", "success");
+                    showToast("কিতাব সফলভাবে মুছে ফেলা হয়েছে।", "success");
                 } catch (error) {
                     console.error("Error deleting kitab:", error);
-                    showToast("Failed to delete kitab.", "error");
+                    showToast("কিতাব মুছতে সমস্যা হয়েছে।", "error");
                 }
             }
         }
@@ -974,7 +966,6 @@
                  return;
             }
 
-            // --- Table Head ---
             let headRowHtml = `<tr><th class="py-3 px-2 text-left">নং</th><th class="py-3 px-2 text-left">নাম</th>`;
             reportKitabs.forEach(kitab => {
                 headRowHtml += `<th class="py-3 px-2 text-center">${kitab.name}</th>`;
@@ -982,7 +973,6 @@
             headRowHtml += '</tr>';
             headContainer.innerHTML = headRowHtml;
 
-            // --- Table Body ---
             let totalPresent = 0, totalAbsent = 0;
             reportStudents.sort((a,b) => a.name.localeCompare(b.name, 'bn')).forEach((student, index) => {
                 let bodyRowHtml = `<tr class="border-b border-gray-700 hover:bg-gray-700"><td class="py-2 px-2">${index + 1}</td><td class="py-2 px-2">${student.name}</td>`;
@@ -1004,7 +994,6 @@
                 bodyContainer.innerHTML += bodyRowHtml;
             });
             
-            // --- Chart ---
             const chartCanvas = document.getElementById('attendance-chart');
             if (attendanceChartInstance) {
                 attendanceChartInstance.destroy();
@@ -1016,7 +1005,7 @@
                     labels: ['উপস্থিত', 'অনুপস্থিত'],
                     datasets: [{
                         label: 'হাজিরার হার',
-                        data: totalAttendance > 0 ? [totalPresent, totalAbsent] : [1, 0], // Avoid empty chart
+                        data: totalAttendance > 0 ? [totalPresent, totalAbsent] : [1, 0],
                         backgroundColor: ['#10B981', '#EF4444'],
                         borderColor: '#374151',
                     }]
@@ -1039,8 +1028,6 @@
 
         function addBengaliFontToPDF(doc) {
             // This function adds the SuleimanLipi font to the PDF document.
-            // It uses a Base64 encoded string of the font file.
-            // If the Base64 string is present, it will be used; otherwise, it defaults to Helvetica.
             if (solaimanLipiBase64) {
                 try {
                     doc.addFileToVFS('SuleimanLipi.ttf', solaimanLipiBase64);
@@ -1049,15 +1036,13 @@
                 } catch(e) {
                     console.error("Could not add custom font to PDF:", e);
                     showToast("PDF ফন্ট সেট করতে সমস্যা হয়েছে।", "error");
-                    // Fallback to default font
-                    doc.setFont('Helvetica');
+                    doc.setFont('Helvetica'); // Fallback font
                 }
             } else {
                 console.warn("SuleimanLipi Base64 font data is missing. PDF will use default font.");
                 doc.setFont('Helvetica');
             }
         }
-
 
         const getReportHeaderInfo = () => {
              const year = document.getElementById('report-year').options[document.getElementById('report-year').selectedIndex].text;
@@ -1071,7 +1056,6 @@
              const doc = new jsPDF();
              const { year, exam, jamia } = getReportHeaderInfo();
              
-             // Add and set the Bengali font
              addBengaliFontToPDF(doc);
              
              doc.setFontSize(16);
@@ -1083,17 +1067,12 @@
              doc.text(`রিপোর্ট - শিক্ষাবর্ষ: ${year}`, 105, 32, { align: 'center'});
              doc.text(`জামাত: ${jamia} | পরীক্ষা: ${exam}`, 105, 39, { align: 'center'});
 
-
              const head = [[ 'নং', 'শিক্ষার্থীর নাম', ...reportDataCache.kitabs.map(k => k.name) ]];
              const body = reportDataCache.students.map((student, index) => {
                  const row = [index + 1, student.name];
                  reportDataCache.kitabs.forEach(kitab => {
                      const record = reportDataCache.attendance.find(r => r.studentId === student.id && r.kitabId === kitab.id);
-                     if (record) {
-                        row.push(record.status === 'present' ? '✓' : '✗'); // Using symbols
-                     } else {
-                        row.push('-');
-                     }
+                     row.push(record ? (record.status === 'present' ? '✓' : '✗') : '-');
                  });
                  return row;
              });
@@ -1103,15 +1082,8 @@
                  head: head,
                  body: body,
                  theme: 'grid',
-                 styles: { 
-                    font: 'SuleimanLipi', // Apply SuleimanLipi font to table
-                    cellPadding: 2, 
-                    fontSize: 10
-                 },
-                 headStyles: { 
-                    fillColor: [31, 41, 55], // dark gray
-                    fontStyle: 'bold'
-                 },
+                 styles: { font: 'SuleimanLipi', cellPadding: 2, fontSize: 10 },
+                 headStyles: { fillColor: [31, 41, 55], fontStyle: 'bold' },
                  didDrawPage: function(data) {
                     doc.setFontSize(8);
                     doc.text("Created by: Hasania Exam Management System", data.settings.margin.left, doc.internal.pageSize.height - 10);
@@ -1135,23 +1107,20 @@
                  const row = { "ক্রমিক নং": index + 1, "শিক্ষার্থীর নাম": student.name };
                  reportDataCache.kitabs.forEach(kitab => {
                      const record = reportDataCache.attendance.find(r => r.studentId === student.id && r.kitabId === kitab.id);
-                      if (record) {
-                        row[kitab.name] = record.status === 'present' ? 'উপস্থিত (✓)' : 'অনুপস্থিত (✗)';
-                     } else {
-                        row[kitab.name] = '-';
-                     }
+                      row[kitab.name] = record ? (record.status === 'present' ? 'উপস্থিত (✓)' : 'অনুপস্থিত (✗)') : '-';
                  });
                  return row;
             });
             
             const footer = ["Created by: Hasania Exam Management System"];
 
-            const ws = XLSX.utils.json_to_sheet(tableBody, {header: tableHeader, skipHeader: false});
+            const ws = XLSX.utils.json_to_sheet([], {header: tableHeader});
             XLSX.utils.sheet_add_aoa(ws, [header[0]], {origin: "A1"});
             XLSX.utils.sheet_add_aoa(ws, [header[1]], {origin: "A2"});
             XLSX.utils.sheet_add_aoa(ws, [header[2]], {origin: "A3"});
             XLSX.utils.sheet_add_aoa(ws, [header[3]], {origin: "A4"});
-            XLSX.utils.sheet_add_aoa(ws, [footer], {origin: -1}); // Add to the end
+            XLSX.utils.sheet_add_json(ws, tableBody, {origin: "A6", skipHeader: false});
+            XLSX.utils.sheet_add_aoa(ws, [footer], {origin: -1});
 
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Hajira Report");
